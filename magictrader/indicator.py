@@ -6,7 +6,7 @@ import numpy
 import talib
 
 from magictrader.candle import CandleFeeder
-from magictrader.const import APPLIED_PRICE, MODE_BBANDS, MODE_MACD
+from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
 
 
 class Indicator(metaclass=ABCMeta):
@@ -55,7 +55,7 @@ class Indicator(metaclass=ABCMeta):
 
 class SMA(Indicator):
 
-    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, applied_price: APPLIED_PRICE):
+    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, applied_price: AppliedPrice):
         self._period = period
         self._applied_price = applied_price
         super().__init__(feeder, "sma", bar_count)
@@ -69,7 +69,7 @@ class SMA(Indicator):
 
 class BBANDS(Indicator):
 
-    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, deviation: int, mode_bbands: MODE_BBANDS, applied_price: APPLIED_PRICE):
+    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, deviation: int, mode_bbands: ModeBBANDS, applied_price: AppliedPrice):
         self._period = period
         self._deviation = deviation
         self._mode_bbands = mode_bbands
@@ -80,17 +80,17 @@ class BBANDS(Indicator):
         self._times = self._feeder.get_times(self._bar_count)
         prices = self._feeder.get_prices(self._bar_count + self._period, self._applied_price)
         prices = talib.BBANDS(prices, timeperiod=self._period, nbdevup=self._deviation, nbdevdn=self._deviation, matype=0)
-        if self._mode_bbands == MODE_BBANDS.UPPER:
+        if self._mode_bbands == ModeBBANDS.UPPER:
             self._prices = prices[0][-self._bar_count:].tolist()
-        elif self._mode_bbands == MODE_BBANDS.MIDDLE:
+        elif self._mode_bbands == ModeBBANDS.MIDDLE:
             self._prices = prices[1][-self._bar_count:].tolist()
-        elif self._mode_bbands == MODE_BBANDS.LOWER:
+        elif self._mode_bbands == ModeBBANDS.LOWER:
             self._prices = prices[2][-self._bar_count:].tolist()
 
 
 class STDDEV(Indicator):
 
-    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, deviation: int, applied_price: APPLIED_PRICE):
+    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, deviation: int, applied_price: AppliedPrice):
         self._period = period
         self._deviation = deviation
         self._applied_price = applied_price
@@ -105,7 +105,7 @@ class STDDEV(Indicator):
 
 class MACD(Indicator):
 
-    def __init__(self, feeder: CandleFeeder, bar_count: int, fast_period: int, slow_period: int, signal_period, mode_macd: MODE_MACD, applied_price: APPLIED_PRICE):
+    def __init__(self, feeder: CandleFeeder, bar_count: int, fast_period: int, slow_period: int, signal_period, mode_macd: ModeMACD, applied_price: AppliedPrice):
         self._fast_period = fast_period
         self._slow_period = slow_period
         self._signal_period = signal_period
@@ -117,11 +117,11 @@ class MACD(Indicator):
         self._times = self._feeder.get_times(self._bar_count)
         prices = self._feeder.get_prices(self._bar_count + self._slow_period, self._applied_price)
         prices = talib.MACD(prices, fastperiod=self._fast_period, slowperiod=self._slow_period, signalperiod=self._signal_period)
-        if self._mode_macd == MODE_MACD.FAST:
+        if self._mode_macd == ModeMACD.FAST:
             self._prices = prices[0][-self._bar_count:].tolist()
-        elif self._mode_macd == MODE_MACD.SLOW:
+        elif self._mode_macd == ModeMACD.SLOW:
             self._prices = prices[1][-self._bar_count:].tolist()
-        elif self._mode_macd == MODE_MACD.SIGNAL:
+        elif self._mode_macd == ModeMACD.SIGNAL:
             self._prices = prices[2][-self._bar_count:].tolist()
 
 
@@ -133,16 +133,16 @@ class ADX(Indicator):
 
     def _load(self):
         self._times = self._feeder.get_times(self._bar_count)
-        highs = self._feeder.get_prices(self._bar_count + self._period, APPLIED_PRICE.HIGH)
-        lows = self._feeder.get_prices(self._bar_count + self._period, APPLIED_PRICE.LOW)
-        closes = self._feeder.get_prices(self._bar_count + self._period, APPLIED_PRICE.CLOSE)
+        highs = self._feeder.get_prices(self._bar_count + self._period, AppliedPrice.HIGH)
+        lows = self._feeder.get_prices(self._bar_count + self._period, AppliedPrice.LOW)
+        closes = self._feeder.get_prices(self._bar_count + self._period, AppliedPrice.CLOSE)
         prices = talib.ADX(high=highs, low=lows, close=closes, timeperiod=self._period)
         self._prices = prices[-self._bar_count:].tolist()
 
 
 class RSI(Indicator):
 
-    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, applied_price: APPLIED_PRICE):
+    def __init__(self, feeder: CandleFeeder, bar_count: int, period: int, applied_price: AppliedPrice):
         self._period = period
         self._applied_price = applied_price
         super().__init__(feeder, "rsi", bar_count)

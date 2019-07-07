@@ -5,7 +5,7 @@ import numpy
 from sqlalchemy import asc
 from zaifer import Chart as ChartAPI
 
-from magictrader.const import APPLIED_PRICE, CurrencyPair, Period
+from magictrader.const import AppliedPrice, Period
 from magictrader.model import CandleOHLC, DBContext
 from magictrader.utils import TimeConverter
 
@@ -57,23 +57,23 @@ class CandleFeeder:
     def get_ohlcs(self, bar_count: int) -> dict:
         return {
             "times": self.get_times(bar_count),
-            "opens": self.get_prices(bar_count, APPLIED_PRICE.OPEN),
-            "highs": self.get_prices(bar_count, APPLIED_PRICE.HIGH),
-            "lows": self.get_prices(bar_count, APPLIED_PRICE.LOW),
-            "closes": self.get_prices(bar_count, APPLIED_PRICE.CLOSE),
+            "opens": self.get_prices(bar_count, AppliedPrice.OPEN),
+            "highs": self.get_prices(bar_count, AppliedPrice.HIGH),
+            "lows": self.get_prices(bar_count, AppliedPrice.LOW),
+            "closes": self.get_prices(bar_count, AppliedPrice.CLOSE),
         }
 
     def get_times(self, bar_count: int) -> List[datetime]:
         return self._ohlcs["times"][self._cache_bar_count-bar_count:self._cache_bar_count]
 
-    def get_prices(self, bar_count: int, applied_price: APPLIED_PRICE) -> numpy.ndarray:
-        if applied_price == APPLIED_PRICE.OPEN:
+    def get_prices(self, bar_count: int, applied_price: AppliedPrice) -> numpy.ndarray:
+        if applied_price == AppliedPrice.OPEN:
             return self._ohlcs["opens"][self._cache_bar_count-bar_count:self._cache_bar_count]
-        elif applied_price == APPLIED_PRICE.HIGH:
+        elif applied_price == AppliedPrice.HIGH:
             return self._ohlcs["highs"][self._cache_bar_count-bar_count:self._cache_bar_count]
-        elif applied_price == APPLIED_PRICE.LOW:
+        elif applied_price == AppliedPrice.LOW:
             return self._ohlcs["lows"][self._cache_bar_count-bar_count:self._cache_bar_count]
-        elif applied_price == APPLIED_PRICE.CLOSE:
+        elif applied_price == AppliedPrice.CLOSE:
             return self._ohlcs["closes"][self._cache_bar_count-bar_count:self._cache_bar_count]
 
     def go_next(self) -> bool:
@@ -275,7 +275,3 @@ class Candle:
     @property
     def highs(self) -> List[float]:
         return self._highs
-
-    @property
-    def width(self) -> float:
-        return 0.8

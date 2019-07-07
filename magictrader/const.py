@@ -72,7 +72,7 @@ class Period(Enum):
             return "W"
 
 
-class APPLIED_PRICE(Enum):
+class AppliedPrice(Enum):
     """
     テクニカルインジケーターの計算に使用する価格
     """
@@ -82,7 +82,7 @@ class APPLIED_PRICE(Enum):
     CLOSE = 3
 
 
-class MODE_BBANDS(Enum):
+class ModeBBANDS(Enum):
     """
     ボリンジャーバンドの線種
     """
@@ -91,7 +91,7 @@ class MODE_BBANDS(Enum):
     LOWER = 2
 
 
-class MODE_MACD(Enum):
+class ModeMACD(Enum):
     """
     MACDの線種
     """

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart
-from magictrader.const import APPLIED_PRICE, MODE_BBANDS, MODE_MACD
+from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
 from magictrader.indicator import ADX, BBANDS, MACD, RSI, SMA, STDDEV
 
 if __name__ == "__main__":
@@ -15,17 +15,17 @@ if __name__ == "__main__":
     while True:
 
         candle = Candle(feeder, 200)
-        sma_fast = SMA(feeder, 200, 21, APPLIED_PRICE.CLOSE)
-        sma_middle = SMA(feeder, 200, 89, APPLIED_PRICE.CLOSE)
-        sma_slow = SMA(feeder, 200, 200, APPLIED_PRICE.CLOSE)
-        bb_u1 = BBANDS(feeder, 200, 20, 1, MODE_BBANDS.UPPER, APPLIED_PRICE.CLOSE)
-        bb_l1 = BBANDS(feeder, 200, 20, 1, MODE_BBANDS.LOWER, APPLIED_PRICE.CLOSE)
-        stddev = STDDEV(feeder, 200, 20, 1, APPLIED_PRICE.CLOSE)
-        macd_fast = MACD(feeder, 200, 12, 26, 9, MODE_MACD.FAST, APPLIED_PRICE.CLOSE)
-        macd_slow = MACD(feeder, 200, 12, 26, 9, MODE_MACD.SLOW, APPLIED_PRICE.CLOSE)
-        macd_signal = MACD(feeder, 200, 12, 26, 9, MODE_MACD.SIGNAL, APPLIED_PRICE.CLOSE)
+        sma_fast = SMA(feeder, 200, 21, AppliedPrice.CLOSE)
+        sma_middle = SMA(feeder, 200, 89, AppliedPrice.CLOSE)
+        sma_slow = SMA(feeder, 200, 200, AppliedPrice.CLOSE)
+        bb_u1 = BBANDS(feeder, 200, 20, 1, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
+        bb_l1 = BBANDS(feeder, 200, 20, 1, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
+        stddev = STDDEV(feeder, 200, 20, 1, AppliedPrice.CLOSE)
+        macd_fast = MACD(feeder, 200, 12, 26, 9, ModeMACD.FAST, AppliedPrice.CLOSE)
+        macd_slow = MACD(feeder, 200, 12, 26, 9, ModeMACD.SLOW, AppliedPrice.CLOSE)
+        macd_signal = MACD(feeder, 200, 12, 26, 9, ModeMACD.SIGNAL, AppliedPrice.CLOSE)
         adx = ADX(feeder, 200, 20)
-        rsi = RSI(feeder, 200, 20, APPLIED_PRICE.CLOSE)
+        rsi = RSI(feeder, 200, 20, AppliedPrice.CLOSE)
 
         if chart:
             chart.update("title", candle, [sma_fast, sma_middle, sma_slow, bb_u1, bb_l1], [([stddev, adx, rsi], [macd_fast, macd_slow, macd_signal])])

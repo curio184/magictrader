@@ -38,6 +38,8 @@ class Chart:
              ([IndicatorX], [IndicatorZ, IndicatorY])]
         """
 
+        candle_width = 0.8
+
         rows = 1 + len(sub_windows)
         height_ratios = [3]
         height_ratios.extend([1]*len(sub_windows))
@@ -51,7 +53,7 @@ class Chart:
 
         # ローソク足を描画
         self._r, self._b = mpf.candlestick2_ohlc(
-            self._ax[0], candle.opens, candle.highs, candle.lows, candle.closes, candle.width, colorup='r', colordown='b', alpha=0.1
+            self._ax[0], candle.opens, candle.highs, candle.lows, candle.closes, candle_width, colorup='r', colordown='b', alpha=0.1
         )
 
         # インディケーターを描画
@@ -135,11 +137,13 @@ class Chart:
              ([IndicatorX], [IndicatorZ, IndicatorY])]
         """
 
+        candle_width = 0.8
+
         #######################################################
         # メインウィンドウを再描画
         #######################################################
 
-        delta = candle.width / 2.
+        delta = candle_width / 2.
         barVerts = [((i - delta, open),
                      (i - delta, close),
                      (i + delta, close),
