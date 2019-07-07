@@ -33,4 +33,3 @@ if __name__ == "__main__":
             chart = Chart("title", candle, [sma_fast, sma_middle, sma_slow, bb_u1, bb_l1], [([stddev, adx, rsi], [macd_fast, macd_slow, macd_signal])])
 
         feeder.go_next()
-        time.sleep(0.01)

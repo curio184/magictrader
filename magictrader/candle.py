@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta
 from typing import List
 
@@ -50,12 +51,10 @@ class CandleFeeder:
             self._datetime_to = self._datetime_cursor
         self._db_context = DBContext()
         self._chart_api = ChartAPI()
+        self._server_request_span = 3.0
+        self._server_request_latest = None
         self._ohlcs = {}
         self.go_next()
-
-        self._server_request_span = 5
-        self._server_request_latest = None
-        self._cache_bar_max_time = None
 
     def get_ohlcs(self, extra_bar_count: int = 0) -> dict:
         """
@@ -124,6 +123,14 @@ class CandleFeeder:
             return self._ohlcs["closes"][-bar_count:]
 
     def go_next(self) -> bool:
+        """
+        次のローソク足を取得する
+
+        Returns
+        -------
+        bool
+            取得に成功した場合True、失敗した場合False
+        """
 
         # バックテストモードの場合
         if self._backtest_mode:
@@ -263,6 +270,11 @@ class CandleFeeder:
         dict
             ローソク足
         """
+
+        if self._server_request_latest:
+            while self._server_request_latest + timedelta(seconds=self._server_request_span) > datetime.now():
+                time.sleep(1.0)
+        self._server_request_latest = datetime.now()
 
         response = self._chart_api.get_ohlc(self._currency_pair, Period.to_zaifapi_str(self._period), range_from, range_to)
         return {
