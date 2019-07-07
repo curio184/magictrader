@@ -5,20 +5,38 @@ import numpy
 from sqlalchemy import asc
 from zaifer import Chart as ChartAPI
 
-from magictrader.const import APPLIED_PRICE, Period
+from magictrader.const import APPLIED_PRICE, CurrencyPair, Period
 from magictrader.model import CandleOHLC, DBContext
 from magictrader.utils import TimeConverter
 
 
 class CandleFeeder:
+    """
+    ローソク足を供給するクラス
+    """
 
-    def __init__(self, currency_pair: str, period: str, is_backtest: bool = False, datetime_from: datetime = None, datetime_to: datetime = None):
+    def __init__(self, currency_pair: str, period: str, backtest_mode: bool = False, datetime_from: datetime = None, datetime_to: datetime = None):
+        """
+        Parameters
+        ----------
+        currency_pair : str
+            通貨ペア("btc_jpy", etc.)
+        period : str
+            時間枠("1m", "5m", "15m", "30m", "1h", "4h", "8h", "12h", "1d", "1w")
+        backtest_mode : bool, optional
+            バックテストモードを実行する, by default False
+        datetime_from : datetime, optional
+            バックテストの開始日時, by default None
+        datetime_to : datetime, optional
+            バックテストの終了日時, by default None
+        """
+
         self._currency_pair = currency_pair
         self._period = period
         self._cache_bar_count = 1000
-        self._is_backtest = is_backtest
+        self._backtest_mode = backtest_mode
         # バックテストの場合
-        if self._is_backtest:
+        if self._backtest_mode:
             self._datetime_cursor = datetime_from
             self._datetime_from = datetime_from
             self._datetime_to = datetime_to
@@ -61,7 +79,7 @@ class CandleFeeder:
     def go_next(self) -> bool:
 
         # バックテストの場合
-        if self._is_backtest:
+        if self._backtest_mode:
 
             if self._datetime_cursor < self._datetime_to:
 
@@ -70,11 +88,11 @@ class CandleFeeder:
                 range_from = self._datetime_cursor - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
                 range_to = self._datetime_cursor
 
-                # キャッシュからローソク足を取得する
+                # ローカルDBからローソク足を取得する
                 ohlcs = self._get_ohlcs_from_local(range_from, range_to)
 
-                # キャッシュがヒットしなかった場合
-                if len(ohlcs["times"]) != self._cache_bar_count:
+                # ローカルDBでヒットしなかった場合
+                if len(ohlcs["times"]) < self._cache_bar_count:
 
                     # サーバーからローソク足を取得する
                     extra_range_from = range_from
@@ -111,7 +129,19 @@ class CandleFeeder:
 
     def _get_ohlcs_from_local(self, range_from: datetime, range_to: datetime) -> dict:
         """
-        ローカルからローソク足を取得する
+        ローカルDBからローソク足を取得する
+
+        Parameters
+        ----------
+        range_from : datetime
+            取得開始日時
+        range_to : datetime
+            取得終了日時
+
+        Returns
+        -------
+        dict
+            ローソク足
         """
 
         records = self._db_context.session.query(CandleOHLC) \
@@ -132,13 +162,18 @@ class CandleFeeder:
 
     def _save_ohlcs_to_local(self, ohlcs: dict):
         """
-        ローカルにローソク足を保存する
+        ローカルDBにローソク足を保存する
+
+        Parameters
+        ----------
+        ohlcs : dict
+            ローソク足
         """
 
-        # ローカルにデータを保存する
+        # ローカルDBにローソク足を保存する
         for idx, item in enumerate(ohlcs["times"]):
 
-            # ローカルをUPSERTする
+            # ローカルDBにUPSERTする
             record = self._db_context.session.query(CandleOHLC) \
                 .filter(CandleOHLC.currency_pair == self._currency_pair) \
                 .filter(CandleOHLC.period == self._period) \
@@ -168,9 +203,21 @@ class CandleFeeder:
     def _get_ohlcs_from_server(self, range_from: datetime, range_to: datetime) -> dict:
         """
         サーバーからローソク足を取得する
+
+        Parameters
+        ----------
+        range_from : datetime
+            取得開始日時
+        range_to : datetime
+            取得終了日時
+
+        Returns
+        -------
+        dict
+            ローソク足
         """
 
-        response = self._chart_api.get_ohlc(self._currency_pair, Period.to_str_for_zaifapi(self._period), range_from, range_to)
+        response = self._chart_api.get_ohlc(self._currency_pair, Period.to_zaifapi_str(self._period), range_from, range_to)
         return {
             "times": list(map(lambda x: TimeConverter.unixtime_to_datetime(int(x["time"]/1000)), response["ohlc_data"])),
             "opens": numpy.array(list(map(lambda x: x["open"], response["ohlc_data"]))),
@@ -180,8 +227,8 @@ class CandleFeeder:
         }
 
     @property
-    def is_backtest(self) -> bool:
-        return self._is_backtest
+    def backtest_mode(self) -> bool:
+        return self._backtest_mode
 
     @property
     def datetime_from(self) -> datetime:
@@ -201,7 +248,7 @@ class Candle:
     ローソク足を表すクラス
     """
 
-    def __init__(self, feeder: CandleFeeder, bar_count: int,):
+    def __init__(self, feeder: CandleFeeder, bar_count: int):
         candles = feeder.get_ohlcs(bar_count)
         self._times = candles["times"]
         self._opens = candles["opens"].tolist()

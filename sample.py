@@ -6,7 +6,6 @@ from magictrader.chart import Chart
 from magictrader.const import APPLIED_PRICE, MODE_BBANDS, MODE_MACD
 from magictrader.indicator import ADX, BBANDS, MACD, RSI, SMA, STDDEV
 
-
 if __name__ == "__main__":
 
     # feeder = CandleFeeder("btc_jpy", "5m")
