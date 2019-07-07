@@ -15,7 +15,7 @@ class CandleFeeder:
     ローソク足を供給するクラス
     """
 
-    def __init__(self, currency_pair: str, period: str, backtest_mode: bool = False, datetime_from: datetime = None, datetime_to: datetime = None):
+    def __init__(self, currency_pair: str, period: str, bar_count: int, backtest_mode: bool = False, datetime_from: datetime = None, datetime_to: datetime = None):
         """
         Parameters
         ----------
@@ -23,6 +23,8 @@ class CandleFeeder:
             通貨ペア("btc_jpy", etc.)
         period : str
             時間枠("1m", "5m", "15m", "30m", "1h", "4h", "8h", "12h", "1d", "1w")
+        bar_count : int
+            ローソク足の本数
         backtest_mode : bool, optional
             バックテストモードを実行する, by default False
         datetime_from : datetime, optional
@@ -33,14 +35,15 @@ class CandleFeeder:
 
         self._currency_pair = currency_pair
         self._period = period
-        self._cache_bar_count = 1000
+        self._bar_count = bar_count
+        self._cache_bar_count = self._bar_count * 5
         self._backtest_mode = backtest_mode
-        # バックテストの場合
+        # バックテストモードの場合
         if self._backtest_mode:
             self._datetime_cursor = datetime_from
             self._datetime_from = datetime_from
             self._datetime_to = datetime_to
-        # フォワードテストの場合
+        # リアルタイムモードの場合
         else:
             self._datetime_cursor = datetime.now()
             self._datetime_from = self._datetime_cursor
@@ -54,31 +57,75 @@ class CandleFeeder:
         self._server_request_latest = None
         self._cache_bar_max_time = None
 
-    def get_ohlcs(self, bar_count: int) -> dict:
+    def get_ohlcs(self, extra_bar_count: int = 0) -> dict:
+        """
+        ローソク足を取得する
+
+        Parameters
+        ----------
+        extra_bar_count : int, optional
+            インディケーターが追加で必要とするローソク足の本数, by default 0
+
+        Returns
+        -------
+        dict
+            ローソク足
+        """
+
         return {
-            "times": self.get_times(bar_count),
-            "opens": self.get_prices(bar_count, AppliedPrice.OPEN),
-            "highs": self.get_prices(bar_count, AppliedPrice.HIGH),
-            "lows": self.get_prices(bar_count, AppliedPrice.LOW),
-            "closes": self.get_prices(bar_count, AppliedPrice.CLOSE),
+            "times": self.get_times(extra_bar_count),
+            "opens": self.get_prices(extra_bar_count, AppliedPrice.OPEN),
+            "highs": self.get_prices(extra_bar_count, AppliedPrice.HIGH),
+            "lows": self.get_prices(extra_bar_count, AppliedPrice.LOW),
+            "closes": self.get_prices(extra_bar_count, AppliedPrice.CLOSE),
         }
 
-    def get_times(self, bar_count: int) -> List[datetime]:
-        return self._ohlcs["times"][self._cache_bar_count-bar_count:self._cache_bar_count]
+    def get_times(self, extra_bar_count: int = 0) -> List[datetime]:
+        """
+        ローソク足の時刻を取得する
 
-    def get_prices(self, bar_count: int, applied_price: AppliedPrice) -> numpy.ndarray:
+        Parameters
+        ----------
+        extra_bar_count : int
+            インディケーターが追加で必要とするローソク足の本数, by default 0
+
+        Returns
+        -------
+        List[datetime]
+            ローソク足の時刻
+        """
+        bar_count = self._bar_count + extra_bar_count
+        return self._ohlcs["times"][-bar_count:]
+
+    def get_prices(self, extra_bar_count: int = 0, applied_price: AppliedPrice = AppliedPrice.CLOSE) -> numpy.ndarray:
+        """
+        ローソク足の価格を取得する
+
+        Parameters
+        ----------
+        extra_bar_count : int, optional
+            インディケーターが追加で必要とするローソク足の本数, by default 0
+        applied_price : AppliedPrice, optional
+            インディケーターが必要とする価格種, by default AppliedPrice.CLOSE
+
+        Returns
+        -------
+        numpy.ndarray
+            ローソク足の価格
+        """
+        bar_count = self._bar_count + extra_bar_count
         if applied_price == AppliedPrice.OPEN:
-            return self._ohlcs["opens"][self._cache_bar_count-bar_count:self._cache_bar_count]
+            return self._ohlcs["opens"][-bar_count:]
         elif applied_price == AppliedPrice.HIGH:
-            return self._ohlcs["highs"][self._cache_bar_count-bar_count:self._cache_bar_count]
+            return self._ohlcs["highs"][-bar_count:]
         elif applied_price == AppliedPrice.LOW:
-            return self._ohlcs["lows"][self._cache_bar_count-bar_count:self._cache_bar_count]
+            return self._ohlcs["lows"][-bar_count:]
         elif applied_price == AppliedPrice.CLOSE:
-            return self._ohlcs["closes"][self._cache_bar_count-bar_count:self._cache_bar_count]
+            return self._ohlcs["closes"][-bar_count:]
 
     def go_next(self) -> bool:
 
-        # バックテストの場合
+        # バックテストモードの場合
         if self._backtest_mode:
 
             if self._datetime_cursor < self._datetime_to:
@@ -113,7 +160,7 @@ class CandleFeeder:
 
                 return False
 
-        # フォワードテストの場合
+        # リアルタイムモードの場合
         else:
 
             # ローソク足の取得範囲を計算する
@@ -227,6 +274,22 @@ class CandleFeeder:
         }
 
     @property
+    def currency_pair(self) -> str:
+        return self._currency_pair
+
+    @property
+    def period(self) -> str:
+        return self._period
+
+    @property
+    def bar_count(self) -> str:
+        return self._bar_count
+
+    @property
+    def cache_bar_count(self) -> str:
+        return self._cache_bar_count
+
+    @property
     def backtest_mode(self) -> bool:
         return self._backtest_mode
 
@@ -248,8 +311,8 @@ class Candle:
     ローソク足を表すクラス
     """
 
-    def __init__(self, feeder: CandleFeeder, bar_count: int):
-        candles = feeder.get_ohlcs(bar_count)
+    def __init__(self, feeder: CandleFeeder):
+        candles = feeder.get_ohlcs()
         self._times = candles["times"]
         self._opens = candles["opens"].tolist()
         self._closes = candles["closes"].tolist()
