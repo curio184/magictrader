@@ -9,21 +9,21 @@ from magictrader.indicator import ADX, BBANDS, MACD, RSI, SMA, STDDEV
 
 class TradeTerminal:
 
-    def __init__(self, currency_pair: str, period: str, mode: str, datetime_from: datetime, datetime_to: datetime):
+    def __init__(self, currency_pair: str, period: str, trade_mode: str, datetime_from: datetime, datetime_to: datetime):
 
         self._currency_pair = currency_pair
         self._period = period
-        self._mode = mode
+        self._trade_mode = trade_mode
         self._datetime_from = datetime_from
         self._datetime_to = datetime_to
 
         self._chart = None
         self._feeder = None
-        if self._mode == "practice":
+        if self._trade_mode == "practice":
             self._feeder = CandleFeeder(self._currency_pair, self._period, 200)
-        elif self._mode == "backtest":
+        elif self._trade_mode == "backtest":
             self._feeder = CandleFeeder(self._currency_pair, self._period, 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
-        elif self._mode == "forwardtest":
+        elif self._trade_mode == "forwardtest":
             self._feeder = CandleFeeder(self._currency_pair, self._period, 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
 
     def start(self):
@@ -31,6 +31,9 @@ class TradeTerminal:
         while True:
             self.on_tick()
             self._feeder.go_next()
+
+    def on_start(self):
+        pass
 
     def on_tick(self):
 

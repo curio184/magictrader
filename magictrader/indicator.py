@@ -124,6 +124,7 @@ class MACD(Indicator):
 
 
 class ADX(Indicator):
+    # 仮実装(25を定数として使っている)
 
     def __init__(self, feeder: CandleFeeder, period: int):
         self._period = period
@@ -131,9 +132,9 @@ class ADX(Indicator):
 
     def _load(self):
         self._times = self._feeder.get_times()
-        highs = self._feeder.get_prices(self._period, AppliedPrice.HIGH)
-        lows = self._feeder.get_prices(self._period, AppliedPrice.LOW)
-        closes = self._feeder.get_prices(self._period, AppliedPrice.CLOSE)
+        highs = self._feeder.get_prices(25, AppliedPrice.HIGH)
+        lows = self._feeder.get_prices(25, AppliedPrice.LOW)
+        closes = self._feeder.get_prices(25, AppliedPrice.CLOSE)
         prices = talib.ADX(high=highs, low=lows, close=closes, timeperiod=self._period)
         self._prices = prices[-self._feeder.bar_count:].tolist()
 
@@ -150,3 +151,40 @@ class RSI(Indicator):
         prices = self._feeder.get_prices(self._period, self._applied_price)
         prices = talib.RSI(prices, timeperiod=self._period)
         self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
+class ENVELOPE(Indicator):
+    # NOTE:仮実装
+
+    def __init__(self, feeder: CandleFeeder, period: int, deviation: float, applied_price: AppliedPrice):
+        self._period = period
+        self._deviation = deviation
+        self._applied_price = applied_price
+        super().__init__(feeder, "envelope")
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        prices = self._feeder.get_prices(self._period, self._applied_price)
+        prices = talib.SMA(prices, self._period)
+        prices = prices * self._deviation
+        self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
+class SIGNAL(Indicator):
+    # NOTE:仮実装
+
+    def __init__(self, feeder: CandleFeeder, prev=None):
+        self._prev = prev
+        super().__init__(feeder, "signal")
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        self._prices = [None] * self._feeder.bar_count
+        if self._prev:
+            for idx_p, time_p in enumerate(self._prev.times):
+                if self._prev.prices[idx_p]:
+                    for idx_c, time_c in enumerate(self._times):
+                        if time_p == time_c:
+                            self._prices[idx_c] = self._prev.prices[idx_p]
+            self.label = self._prev.label
+            self.style = self._prev.style

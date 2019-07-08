@@ -1,6 +1,13 @@
 from enum import Enum
 
 
+class TradeMode(Enum):
+
+    PRACTCE = "practice"
+    BACKTEST = "backtest"
+    FORWARDTEST = "forwardtest"
+
+
 class CurrencyPair(Enum):
     """
     通貨ペア
