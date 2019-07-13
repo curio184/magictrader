@@ -324,12 +324,24 @@ class Candle:
     """
 
     def __init__(self, feeder: CandleFeeder):
-        candles = feeder.get_ohlcs()
+        self._feeder = feeder
+        self._times = []
+        self._opens = []
+        self._closes = []
+        self._lows = []
+        self._highs = []
+        self._load()
+
+    def _load(self):
+        candles = self._feeder.get_ohlcs()
         self._times = candles["times"]
         self._opens = candles["opens"].tolist()
         self._closes = candles["closes"].tolist()
         self._lows = candles["lows"].tolist()
         self._highs = candles["highs"].tolist()
+
+    def refresh(self):
+        self._load()
 
     @property
     def times(self) -> List[datetime]:

@@ -22,6 +22,9 @@ class Indicator(metaclass=ABCMeta):
     def _load(self):
         pass
 
+    def refresh(self):
+        self._load()
+
     @property
     def times(self) -> List[datetime]:
         return self._times
