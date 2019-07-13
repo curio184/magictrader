@@ -84,48 +84,18 @@ class TradeTerminal:
         candle = Candle(feeder)
 
         # SMAを取得する
-        sma_fast = SMA(feeder, 5, AppliedPrice.CLOSE)
-        sma_fast.label = "sma_fast"
-        sma_fast.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+        sma_fast = SMA(feeder, 5, "sma_fast")
+        sma_middle = SMA(feeder, 21, "sma_middle")
+        sma_slow = SMA(feeder, 89, "sma_slow")
 
-        # SMAを取得する
-        sma_middle = SMA(feeder, 21, AppliedPrice.CLOSE)
-        sma_middle.label = "sma_middle"
-        sma_middle.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
-
-        # SMAを取得する
-        sma_slow = SMA(feeder, 89, AppliedPrice.CLOSE)
-        sma_slow.label = "sma_slow"
-        sma_slow.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
-
-        # BB ±0σを取得する
-        bb_md = BBANDS(feeder, 21, 1, ModeBBANDS.MIDDLE, AppliedPrice.CLOSE)
-        bb_md.label = "bb_midle"
-        bb_md.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
-
-        # BB ±1σを取得する
-        bb_p1 = BBANDS(feeder, 21, 1, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
-        bb_p1.label = "bb_p1"
-        bb_p1.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-        bb_m1 = BBANDS(feeder, 21, 1, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
-        bb_m1.label = "bb_m1"
-        bb_m1.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-
-        # BB ±2σを取得する
-        bb_p2 = BBANDS(feeder, 21, 2, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
-        bb_p2.label = "bb_p2"
-        bb_p2.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-        bb_m2 = BBANDS(feeder, 21, 2, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
-        bb_m2.label = "bb_m2"
-        bb_m2.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-
-        # BB ±3σを取得する
-        bb_p3 = BBANDS(feeder, 21, 3, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
-        bb_p3.label = "bb_p3"
-        bb_p3.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-        bb_m3 = BBANDS(feeder, 21, 3, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
-        bb_m3.label = "bb_m3"
-        bb_m3.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
+        # BBを取得する
+        bb_p3 = BBANDS(feeder, 21, 3, ModeBBANDS.UPPER, "bb_p3")
+        bb_p2 = BBANDS(feeder, 21, 2, ModeBBANDS.UPPER, "bb_p2")
+        bb_p1 = BBANDS(feeder, 21, 1, ModeBBANDS.UPPER, "bb_p1")
+        bb_md = BBANDS(feeder, 21, 1, ModeBBANDS.MIDDLE, "bb_midle")
+        bb_m1 = BBANDS(feeder, 21, 1, ModeBBANDS.LOWER, "bb_m1")
+        bb_m2 = BBANDS(feeder, 21, 2, ModeBBANDS.LOWER, "bb_m2")
+        bb_m3 = BBANDS(feeder, 21, 3, ModeBBANDS.LOWER, "bb_m3")
 
         # ADXを取得する
         adx_fast = ADX(feeder, 13)

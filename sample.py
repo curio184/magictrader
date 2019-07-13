@@ -8,7 +8,7 @@ from magictrader.indicator import (ADX, BBANDS, MACD, RSI, SMA, STDDEV,
 
 if __name__ == "__main__":
 
-    # フィーダーを作成する
+    # ローソク足のフィーダーを作成する
     feeder = CandleFeeder("btc_jpy", "5m", 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
     # feeder = CandleFeeder("btc_jpy", "5m", 200)
 
@@ -16,8 +16,8 @@ if __name__ == "__main__":
     candle = Candle(feeder)
 
     # テクニカルインディケーターを作成する
-    sma_fast = SMA(feeder, 21, AppliedPrice.CLOSE)
-    sma_slow = SMA(feeder, 89, AppliedPrice.CLOSE)
+    sma_fast = SMA(feeder, 21)
+    sma_slow = SMA(feeder, 89)
     adx_fast = ADX(feeder, 13)
     adx_slow = ADX(feeder, 26)
     stddev = STDDEV(feeder, 20, 1, AppliedPrice.CLOSE)

@@ -17,8 +17,12 @@ class Indicator(metaclass=ABCMeta):
         self._times = []
         self._prices = []
         self._label = label
-        self._style = {"linestyle": "solid", "color": "gray", "linewidth": 1, "alpha": 1}
+        self._style = {}
+        self._apply_default_style()
         self._load()
+
+    def _apply_default_style(self):
+        self._style = {"linestyle": "solid", "color": "gray", "linewidth": 1, "alpha": 1}
 
     @abstractmethod
     def _load(self):
@@ -61,10 +65,20 @@ class Indicator(metaclass=ABCMeta):
 
 class SMA(Indicator):
 
-    def __init__(self, feeder: CandleFeeder, period: int, applied_price: AppliedPrice):
+    def __init__(self, feeder: CandleFeeder, period: int, label: str = "sma",
+                 applied_price: AppliedPrice = AppliedPrice.CLOSE):
         self._period = period
         self._applied_price = applied_price
-        super().__init__(feeder, "sma")
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        super()._apply_default_style()
+        if 1 <= self._period <= 12:
+            self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+        elif 13 <= self._period <= 74:
+            self.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+        elif 75 <= self._period <= 200:
+            self.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
 
     def _load(self):
         self._times = self._feeder.get_times()
@@ -75,12 +89,17 @@ class SMA(Indicator):
 
 class BBANDS(Indicator):
 
-    def __init__(self, feeder: CandleFeeder, period: int, deviation: int, mode_bbands: ModeBBANDS, applied_price: AppliedPrice):
+    def __init__(self, feeder: CandleFeeder, period: int, deviation: int, mode_bbands: ModeBBANDS,
+                 label: str = "bbands", applied_price: AppliedPrice = AppliedPrice.CLOSE):
         self._period = period
         self._deviation = deviation
         self._mode_bbands = mode_bbands
         self._applied_price = applied_price
-        super().__init__(feeder, "bbands")
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        super()._apply_default_style()
+        self.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
 
     def _load(self):
         self._times = self._feeder.get_times()
