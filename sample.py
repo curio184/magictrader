@@ -1,62 +1,59 @@
-import time
 from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
-from magictrader.chart import Chart
+from magictrader.chart import Chart, ChartWindow
 from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
-from magictrader.indicator import ADX, BBANDS, MACD, RSI, SMA, STDDEV
-
-
-class TradeTerminal:
-
-    def __init__(self, currency_pair: str, period: str, trade_mode: str, datetime_from: datetime, datetime_to: datetime):
-
-        self._currency_pair = currency_pair
-        self._period = period
-        self._trade_mode = trade_mode
-        self._datetime_from = datetime_from
-        self._datetime_to = datetime_to
-
-        self._chart = None
-        self._feeder = None
-        if self._trade_mode == "practice":
-            self._feeder = CandleFeeder(self._currency_pair, self._period, 200)
-        elif self._trade_mode == "backtest":
-            self._feeder = CandleFeeder(self._currency_pair, self._period, 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
-        elif self._trade_mode == "forwardtest":
-            self._feeder = CandleFeeder(self._currency_pair, self._period, 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
-
-    def start(self):
-
-        while True:
-            self.on_tick()
-            self._feeder.go_next()
-
-    def on_start(self):
-        pass
-
-    def on_tick(self):
-
-        candle = Candle(self._feeder)
-        sma_fast = SMA(self._feeder, 21, AppliedPrice.CLOSE)
-        sma_middle = SMA(self._feeder, 89, AppliedPrice.CLOSE)
-        sma_slow = SMA(self._feeder, 200, AppliedPrice.CLOSE)
-        bb_u1 = BBANDS(self._feeder, 20, 1, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
-        bb_l1 = BBANDS(self._feeder, 20, 1, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
-        stddev = STDDEV(self._feeder, 20, 1, AppliedPrice.CLOSE)
-        macd_fast = MACD(self._feeder, 12, 26, 9, ModeMACD.FAST, AppliedPrice.CLOSE)
-        macd_slow = MACD(self._feeder, 12, 26, 9, ModeMACD.SLOW, AppliedPrice.CLOSE)
-        macd_signal = MACD(self._feeder, 12, 26, 9, ModeMACD.SIGNAL, AppliedPrice.CLOSE)
-        adx = ADX(self._feeder, 20)
-        rsi = RSI(self._feeder, 20, AppliedPrice.CLOSE)
-
-        if self._chart:
-            self._chart.update("title", candle, [sma_fast, sma_middle, sma_slow, bb_u1, bb_l1], [([stddev, adx, rsi], [macd_fast, macd_slow, macd_signal])])
-        else:
-            self._chart = Chart("title", candle, [sma_fast, sma_middle, sma_slow, bb_u1, bb_l1], [([stddev, adx, rsi], [macd_fast, macd_slow, macd_signal])])
-
+from magictrader.indicator import (ADX, BBANDS, MACD, RSI, SMA, STDDEV,
+                                   Indicator)
 
 if __name__ == "__main__":
 
-    terminal = TradeTerminal("btc_jpy", "5m", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30))
-    terminal.start()
+    feeder = CandleFeeder("btc_jpy", "5m", 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
+    # feeder = CandleFeeder("btc_jpy", "5m", 200)
+
+    candle = Candle(feeder)
+    sma_fast = SMA(feeder, 21, AppliedPrice.CLOSE)
+    sma_slow = SMA(feeder, 89, AppliedPrice.CLOSE)
+
+    adx_fast = ADX(feeder, 13)
+    adx_slow = ADX(feeder, 26)
+    stddev = STDDEV(feeder, 20, 1, AppliedPrice.CLOSE)
+
+    window_main = ChartWindow()
+    window_main.title = "btc_jpy"
+    window_main.height_ratio = 3
+    window_main.candle = candle
+    window_main.indicators_left.append(sma_fast)
+    window_main.indicators_left.append(sma_slow)
+
+    window_sub = ChartWindow()
+    window_sub.height_ratio = 1
+    window_sub.ylabel_left = "adx"
+    window_sub.ylabel_right = "stddev"
+    window_sub.legend_visible = True
+    window_sub.indicators_left.append(adx_fast)
+    window_sub.indicators_left.append(adx_slow)
+    window_sub.indicators_right.append(stddev)
+
+    chart = Chart()
+    chart.add_window(window_main)
+    chart.add_window(window_sub)
+    chart.show()
+
+    while True:
+
+        feeder.go_next()
+        candle.refresh()
+        sma_fast.refresh()
+        sma_slow.refresh()
+        adx_fast.refresh()
+        adx_slow.refresh()
+        stddev.refresh()
+        chart.refresh()
+
+        # # 日時を描画
+        # self._ax[0].set_xticklabels(list(map(lambda x: "{0:%H:%M}".format(x), candle.times)), rotation=0)
+        # self._fig.autofmt_xdate()
+        # # 日時を描画
+        # self._ax[0].set_xticklabels(list(map(lambda x: "{0:%H:%M}".format(x), candle.times)), rotation=0)
+        # self._fig.autofmt_xdate()

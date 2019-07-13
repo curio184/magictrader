@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
-from magictrader.chart import Chart
+from magictrader.chart import Chart, ChartWindow
 from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
 from magictrader.indicator import (ADX, BBANDS, ENVELOPE, MACD, RSI, SIGNAL,
                                    SMA, STDDEV)
@@ -25,18 +25,6 @@ class TradeTerminal:
 
     def start(self):
 
-        # チャート
-        chart = None
-
-        # ローソク足のフィーダー
-        feeder = None
-        if self._trade_mode == "practice":
-            feeder = CandleFeeder(self._currency_pair, self._period, 200)
-        elif self._trade_mode == "backtest":
-            feeder = CandleFeeder(self._currency_pair, self._period, 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
-        elif self._trade_mode == "forwardtest":
-            feeder = CandleFeeder(self._currency_pair, self._period, 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
-
         # 買いストラテジーのポジション
         buy_positions = []
         buy_current_position = None
@@ -44,20 +32,6 @@ class TradeTerminal:
         # 売りストラテジーのポジション
         sell_positions = []
         sell_current_position = None
-
-        # 売買シグナルインディケーター
-        buy_signal_open = SIGNAL(feeder)
-        buy_signal_open.label = "buy"
-        buy_signal_open.style = {"marker": "^", "color": "red", "ms": 10}
-        buy_signal_close = SIGNAL(feeder)
-        buy_signal_close.label = "sell"
-        buy_signal_close.style = {"marker": "v", "color": "blue", "ms": 10}
-        sell_signal_open = SIGNAL(feeder)
-        sell_signal_open.label = "sell"
-        sell_signal_open.style = {"marker": "v", "color": "green", "ms": 10}
-        sell_signal_close = SIGNAL(feeder)
-        sell_signal_close.label = "buy"
-        sell_signal_close.style = {"marker": "^", "color": "purple", "ms": 10}
 
         # 買いストラテジーのシグナルスコア
         buy_open_score_bull_trend = 0
@@ -88,89 +62,130 @@ class TradeTerminal:
         sell_open_score_bb_penalty = 0
         sell_open_score_env_penalty = 0
 
+        # ローソク足のフィーダー
+        feeder = CandleFeeder(self._currency_pair, self._period, 200, True, datetime(2019, 3, 1), datetime(2019, 6, 30))
+        # feeder = CandleFeeder(self._currency_pair, self._period, 200)
+
+        # 売買シグナルインディケーター
+        buy_signal_open = SIGNAL(feeder)
+        buy_signal_open.label = "buy"
+        buy_signal_open.style = {"marker": "^", "color": "red", "ms": 10}
+        buy_signal_close = SIGNAL(feeder)
+        buy_signal_close.label = "sell"
+        buy_signal_close.style = {"marker": "v", "color": "blue", "ms": 10}
+        sell_signal_open = SIGNAL(feeder)
+        sell_signal_open.label = "sell"
+        sell_signal_open.style = {"marker": "v", "color": "green", "ms": 10}
+        sell_signal_close = SIGNAL(feeder)
+        sell_signal_close.label = "buy"
+        sell_signal_close.style = {"marker": "^", "color": "purple", "ms": 10}
+
+        # ローソク足を取得する
+        candle = Candle(feeder)
+
+        # SMAを取得する
+        sma_fast = SMA(feeder, 5, AppliedPrice.CLOSE)
+        sma_fast.label = "sma_fast"
+        sma_fast.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+
+        # SMAを取得する
+        sma_middle = SMA(feeder, 21, AppliedPrice.CLOSE)
+        sma_middle.label = "sma_middle"
+        sma_middle.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+
+        # SMAを取得する
+        sma_slow = SMA(feeder, 89, AppliedPrice.CLOSE)
+        sma_slow.label = "sma_slow"
+        sma_slow.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+
+        # BB ±0σを取得する
+        bb_md = BBANDS(feeder, 21, 1, ModeBBANDS.MIDDLE, AppliedPrice.CLOSE)
+        bb_md.label = "bb_midle"
+        bb_md.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+
+        # BB ±1σを取得する
+        bb_p1 = BBANDS(feeder, 21, 1, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
+        bb_p1.label = "bb_p1"
+        bb_p1.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
+        bb_m1 = BBANDS(feeder, 21, 1, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
+        bb_m1.label = "bb_m1"
+        bb_m1.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
+
+        # BB ±2σを取得する
+        bb_p2 = BBANDS(feeder, 21, 2, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
+        bb_p2.label = "bb_p2"
+        bb_p2.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
+        bb_m2 = BBANDS(feeder, 21, 2, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
+        bb_m2.label = "bb_m2"
+        bb_m2.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
+
+        # BB ±3σを取得する
+        bb_p3 = BBANDS(feeder, 21, 3, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
+        bb_p3.label = "bb_p3"
+        bb_p3.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
+        bb_m3 = BBANDS(feeder, 21, 3, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
+        bb_m3.label = "bb_m3"
+        bb_m3.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
+
+        # ADXを取得する
+        adx_fast = ADX(feeder, 13)
+        adx_fast.label = "adx_fast"
+        adx_fast.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+        adx_slow = ADX(feeder, 26)
+        adx_slow.label = "adx_slow"
+        adx_slow.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+
+        # STDDEVを取得する
+        stddev = STDDEV(feeder, 26, 1, AppliedPrice.CLOSE)
+        stddev.label = "stddev"
+        stddev.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+
+        # ENVELOPEを取得する
+        dev_rate1 = 0.011
+        dev_rate2 = 0.015
+        env_u2 = ENVELOPE(feeder, 26, dev_rate2, AppliedPrice.CLOSE)
+        env_u2.label = "env_u2"
+        env_u2.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
+        env_u1 = ENVELOPE(feeder, 26, dev_rate1, AppliedPrice.CLOSE)
+        env_u1.label = "env_u1"
+        env_u1.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
+        env_md = ENVELOPE(feeder, 26, 0, AppliedPrice.CLOSE)
+        env_md.label = "env_md"
+        env_md.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
+        env_l1 = ENVELOPE(feeder, 26, -dev_rate1, AppliedPrice.CLOSE)
+        env_l1.label = "env_l1"
+        env_l1.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
+        env_l2 = ENVELOPE(feeder, 26, -dev_rate2, AppliedPrice.CLOSE)
+        env_l2.label = "env_l2"
+        env_l2.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
+
+        # チャート
+        chart = Chart()
+
+        # チャート(メインウィンドウ)
+        window_main = ChartWindow()
+        window_main.title = "btc_jpy"
+        window_main.height_ratio = 3
+        window_main.candle = candle
+        window_main.indicators_left.extend(
+            [sma_fast, sma_middle, sma_slow,
+             bb_p3, bb_p2, bb_p1, bb_md, bb_m1, bb_m2, bb_m3,
+             env_u2, env_u1, env_md, env_l1, env_l2]
+        )
+        chart.add_window(window_main)
+
+        # チャート(サブウインドウ)
+        window_sub = ChartWindow()
+        window_sub.indicators_left.extend([adx_fast, adx_slow])
+        window_sub.indicators_right.append(stddev)
+        chart.add_window(window_sub)
+
+        chart.show()
+
         evaluated_til = datetime(1900, 1, 1)
 
         shouldstop = False
         while not shouldstop:
-
-            # ローソク足を取得する
-            candle = Candle(feeder)
-
-            # SMAを取得する
-            sma_fast = SMA(feeder, 5, AppliedPrice.CLOSE)
-            sma_fast.label = "sma_fast"
-            sma_fast.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
-
-            # SMAを取得する
-            sma_middle = SMA(feeder, 21, AppliedPrice.CLOSE)
-            sma_middle.label = "sma_middle"
-            sma_middle.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
-
-            # SMAを取得する
-            sma_slow = SMA(feeder, 89, AppliedPrice.CLOSE)
-            sma_slow.label = "sma_slow"
-            sma_slow.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
-
-            # BB ±0σを取得する
-            bb_md = BBANDS(feeder, 21, 1, ModeBBANDS.MIDDLE, AppliedPrice.CLOSE)
-            bb_md.label = "bb_midle"
-            bb_md.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
-
-            # BB ±1σを取得する
-            bb_p1 = BBANDS(feeder, 21, 1, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
-            bb_p1.label = "bb_p1"
-            bb_p1.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-            bb_m1 = BBANDS(feeder, 21, 1, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
-            bb_m1.label = "bb_m1"
-            bb_m1.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-
-            # BB ±2σを取得する
-            bb_p2 = BBANDS(feeder, 21, 2, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
-            bb_p2.label = "bb_p2"
-            bb_p2.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-            bb_m2 = BBANDS(feeder, 21, 2, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
-            bb_m2.label = "bb_m2"
-            bb_m2.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-
-            # BB ±3σを取得する
-            bb_p3 = BBANDS(feeder, 21, 3, ModeBBANDS.UPPER, AppliedPrice.CLOSE)
-            bb_p3.label = "bb_p3"
-            bb_p3.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-            bb_m3 = BBANDS(feeder, 21, 3, ModeBBANDS.LOWER, AppliedPrice.CLOSE)
-            bb_m3.label = "bb_m3"
-            bb_m3.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
-
-            # ADXを取得する
-            adx_fast = ADX(feeder, 13)
-            adx_fast.label = "adx_fast"
-            adx_fast.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
-            adx_slow = ADX(feeder, 26)
-            adx_slow.label = "adx_slow"
-            adx_slow.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
-
-            # STDDEVを取得する
-            stddev = STDDEV(feeder, 26, 1, AppliedPrice.CLOSE)
-            stddev.label = "stddev"
-            stddev.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
-
-            # ENVELOPEを取得する
-            dev_rate1 = 0.011
-            dev_rate2 = 0.015
-            env_u2 = ENVELOPE(feeder, 26, dev_rate2, AppliedPrice.CLOSE)
-            env_u2.label = "env_u2"
-            env_u2.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
-            env_u1 = ENVELOPE(feeder, 26, dev_rate1, AppliedPrice.CLOSE)
-            env_u1.label = "env_u1"
-            env_u1.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
-            env_md = ENVELOPE(feeder, 26, 0, AppliedPrice.CLOSE)
-            env_md.label = "env_md"
-            env_md.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
-            env_l1 = ENVELOPE(feeder, 26, -dev_rate1, AppliedPrice.CLOSE)
-            env_l1.label = "env_l1"
-            env_l1.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
-            env_l2 = ENVELOPE(feeder, 26, -dev_rate2, AppliedPrice.CLOSE)
-            env_l2.label = "env_l2"
-            env_l2.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
 
             # 売買シグナルインディケーター
             buy_signal_open = SIGNAL(feeder, buy_signal_open)
@@ -824,25 +839,33 @@ class TradeTerminal:
                 print(item.to_str())
             print("==============================")
 
-            if chart:
-                chart.update(
-                    summary_total, candle,
-                    [sma_fast, sma_slow, bb_md, bb_p1, bb_m1, bb_p2, bb_m2, bb_p3, bb_m3,
-                        buy_signal_open, buy_signal_close, sell_signal_open, sell_signal_close,
-                        env_u2, env_u1, env_md, env_l1, env_l2],
-                    [([adx_fast, adx_slow], [stddev])]
-                )
-            else:
-                chart = Chart(
-                    summary_total, candle,
-                    [sma_fast, sma_slow, bb_md, bb_p1, bb_m1, bb_p2, bb_m2, bb_p3, bb_m3,
-                        buy_signal_open, buy_signal_close, sell_signal_open, sell_signal_close,
-                        env_u2, env_u1, env_md, env_l1, env_l2],
-                    [([adx_fast, adx_slow], [stddev])]
-                )
-
             evaluated_til = candle.times[-1]
+
             feeder.go_next()
+            candle.refresh()
+            sma_fast.refresh()
+            sma_middle.refresh()
+            sma_slow.refresh()
+            bb_p3.refresh()
+            bb_p2.refresh()
+            bb_p1.refresh()
+            bb_md.refresh()
+            bb_m1.refresh()
+            bb_m2.refresh()
+            bb_m3.refresh()
+            env_u2.refresh()
+            env_u1.refresh()
+            env_md.refresh()
+            env_l1.refresh()
+            env_l2.refresh()
+            buy_signal_open.refresh()
+            buy_signal_close.refresh()
+            sell_signal_open.refresh()
+            sell_signal_close.refresh()
+            adx_fast.refresh()
+            adx_slow.refresh()
+            stddev.refresh()
+            chart.refresh()
 
 
 if __name__ == "__main__":
