@@ -14,6 +14,7 @@ if __name__ == "__main__":
 
     # ローソク足を作成する
     candle = Candle(feeder)
+
     # テクニカルインディケーターを作成する
     sma_fast = SMA(feeder, 21, AppliedPrice.CLOSE)
     sma_slow = SMA(feeder, 89, AppliedPrice.CLOSE)
