@@ -6,12 +6,14 @@ import talib
 
 from magictrader.candle import CandleFeeder
 from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
+from magictrader.utils import EventArgs
 
 
 class Indicator(metaclass=ABCMeta):
 
     def __init__(self, feeder: CandleFeeder, label: str):
         self._feeder = feeder
+        self._feeder.ohlc_updated.add(self.ohlc_updated)
         self._times = []
         self._prices = []
         self._label = label
@@ -23,6 +25,9 @@ class Indicator(metaclass=ABCMeta):
         pass
 
     def refresh(self):
+        self._load()
+
+    def ohlc_updated(self, sender: object, eargs: EventArgs):
         self._load()
 
     @property

@@ -43,12 +43,6 @@ if __name__ == "__main__":
     while True:
 
         feeder.go_next()
-        candle.refresh()
-        sma_fast.refresh()
-        sma_slow.refresh()
-        adx_fast.refresh()
-        adx_slow.refresh()
-        stddev.refresh()
         chart.refresh()
 
         # # 日時を描画

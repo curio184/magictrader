@@ -8,7 +8,7 @@ from zaifer import Chart as ChartAPI
 
 from magictrader.const import AppliedPrice, Period
 from magictrader.model import CandleOHLC, DBContext
-from magictrader.utils import TimeConverter
+from magictrader.utils import EventArgs, EventHandler, TimeConverter
 
 
 class CandleFeeder:
@@ -54,6 +54,7 @@ class CandleFeeder:
         self._server_request_span = 3.0
         self._server_request_latest = None
         self._ohlcs = {}
+        self._ohlc_updated = EventHandler(self)
         self.go_next()
 
     def get_ohlcs(self, extra_bar_count: int = 0) -> dict:
@@ -159,7 +160,11 @@ class CandleFeeder:
                     # キャッシュからローソク足を取得する
                     ohlcs = self._get_ohlcs_from_local(range_from, range_to)
 
+                # ローソク足を設定する
                 self._ohlcs = ohlcs
+
+                # ローソク足更新イベントを実行する
+                self._on_ohlc_updated(EventArgs())
 
                 return True
 
@@ -178,6 +183,9 @@ class CandleFeeder:
 
             # サーバーからローソク足を取得する
             self._ohlcs = self._get_ohlcs_from_server(range_from, range_to)
+
+            # ローソク足更新イベントを実行する
+            self._on_ohlc_updated(EventArgs())
 
             return True
 
@@ -285,6 +293,12 @@ class CandleFeeder:
             "closes": numpy.array(list(map(lambda x: x["close"], response["ohlc_data"]))),
         }
 
+    def _on_ohlc_updated(self, eargs: EventArgs):
+        """
+        ローソク足更新イベントを実行する
+        """
+        self._ohlc_updated.fire(eargs)
+
     @property
     def currency_pair(self) -> str:
         return self._currency_pair
@@ -317,6 +331,13 @@ class CandleFeeder:
     def datetime_cursor(self) -> datetime:
         return self._datetime_cursor
 
+    @property
+    def ohlc_updated(self) -> EventHandler:
+        """
+        ローソク足更新イベントのハンドラ
+        """
+        return self._ohlc_updated
+
 
 class Candle:
     """
@@ -325,6 +346,7 @@ class Candle:
 
     def __init__(self, feeder: CandleFeeder):
         self._feeder = feeder
+        self._feeder.ohlc_updated.add(self.ohlc_updated)
         self._times = []
         self._opens = []
         self._closes = []
@@ -341,6 +363,9 @@ class Candle:
         self._highs = candles["highs"].tolist()
 
     def refresh(self):
+        self._load()
+
+    def ohlc_updated(self, sender: object, eargs: EventArgs):
         self._load()
 
     @property
