@@ -87,17 +87,25 @@ class TRADESIGNAL(Indicator):
     def __init__(self, feeder: CandleFeeder, mode_tradesignal: ModeTRADESIGNAL, label: str = None):
         self._mode_tradesignal = mode_tradesignal
         if label is None:
-            if self._mode_tradesignal == ModeTRADESIGNAL.BUY:
-                label = "buy signal"
-            elif self._mode_tradesignal == ModeTRADESIGNAL.SELL:
-                label = "sell signal"
+            if self._mode_tradesignal == ModeTRADESIGNAL.BUY_OPEN:
+                label = "buy open"
+            elif self._mode_tradesignal == ModeTRADESIGNAL.BUY_CLOSE:
+                label = "buy close"
+            elif self._mode_tradesignal == ModeTRADESIGNAL.SELL_OPEN:
+                label = "sell open"
+            elif self._mode_tradesignal == ModeTRADESIGNAL.SELL_CLOSE:
+                label = "sell close"
         super().__init__(feeder, label)
 
     def _apply_default_style(self):
-        if self._mode_tradesignal == ModeTRADESIGNAL.BUY:
+        if self._mode_tradesignal == ModeTRADESIGNAL.BUY_OPEN:
             self.style = {"marker": "^", "color": "red", "ms": 10}
-        elif self._mode_tradesignal == ModeTRADESIGNAL.SELL:
+        elif self._mode_tradesignal == ModeTRADESIGNAL.BUY_CLOSE:
             self.style = {"marker": "v", "color": "blue", "ms": 10}
+        elif self._mode_tradesignal == ModeTRADESIGNAL.SELL_OPEN:
+            self.style = {"marker": "v", "color": "green", "ms": 10}
+        elif self._mode_tradesignal == ModeTRADESIGNAL.SELL_CLOSE:
+            self.style = {"marker": "^", "color": "purple", "ms": 10}
         else:
             super()._apply_default_style()
 

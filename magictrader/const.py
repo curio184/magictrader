@@ -93,8 +93,10 @@ class ModeTRADESIGNAL(Enum):
     """
     売買シグナルの種類
     """
-    BUY = 0
-    SELL = 1
+    BUY_OPEN = 0
+    BUY_CLOSE = 1
+    SELL_OPEN = 2
+    SELL_CLOSE = 3
 
 
 class ModeBBANDS(Enum):

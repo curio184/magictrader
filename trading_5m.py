@@ -68,12 +68,10 @@ class TradeTerminal:
         # feeder = CandleFeeder(self._currency_pair, self._period, 200)
 
         # 売買シグナルインディケーター
-        buy_signal_open = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY)
-        buy_signal_close = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL)
-        sell_signal_open = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY)
-        sell_signal_open.style = {"marker": "v", "color": "green", "ms": 10}
-        sell_signal_close = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL)
-        sell_signal_close.style = {"marker": "^", "color": "purple", "ms": 10}
+        buy_signal_open = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY_OPEN)
+        buy_signal_close = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY_CLOSE)
+        sell_signal_open = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL_OPEN)
+        sell_signal_close = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL_CLOSE)
 
         # ローソク足を取得する
         candle = Candle(feeder)
