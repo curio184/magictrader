@@ -17,7 +17,7 @@ class CurrencyPair(Enum):
 
 class Period(Enum):
     """
-    ピリオド
+    取引時間軸
     """
     M1 = "1m"
     M5 = "5m"
@@ -89,9 +89,17 @@ class AppliedPrice(Enum):
     CLOSE = 3
 
 
+class ModeTRADESIGNAL(Enum):
+    """
+    売買シグナルの種類
+    """
+    BUY = 0
+    SELL = 1
+
+
 class ModeBBANDS(Enum):
     """
-    ボリンジャーバンドの線種
+    ボリンジャーバンドのラインの種類
     """
     UPPER = 0
     MIDDLE = 1
@@ -100,7 +108,7 @@ class ModeBBANDS(Enum):
 
 class ModeMACD(Enum):
     """
-    MACDの線種
+    MACDのラインの種類
     """
     FAST = 0
     SLOW = 1

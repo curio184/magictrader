@@ -26,9 +26,9 @@ if __name__ == "__main__":
     window_main = ChartWindow()
     window_main.title = "btc_jpy"
     window_main.height_ratio = 3
-    window_main.candle = candle
-    window_main.indicators_left.append(sma_fast)
-    window_main.indicators_left.append(sma_slow)
+    window_main.candle = candle                     # ローソク足を設定
+    window_main.indicators_left.append(sma_fast)    # 短期SMAを設定
+    window_main.indicators_left.append(sma_slow)    # 長期SMAを設定
 
     # チャート画面(サブ)を作成する
     window_sub = ChartWindow()

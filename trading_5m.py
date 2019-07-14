@@ -3,9 +3,10 @@ from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart, ChartWindow
-from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
-from magictrader.indicator import (ADX, BBANDS, ENVELOPE, MACD, RSI, SIGNAL,
-                                   SMA, STDDEV)
+from magictrader.const import (AppliedPrice, ModeBBANDS, ModeMACD,
+                               ModeTRADESIGNAL)
+from magictrader.indicator import (ADX, BBANDS, ENVELOPE, MACD, RSI, SMA,
+                                   STDDEV, TRADESIGNAL)
 from magictrader.notificator import SlackMessenger
 from magictrader.trade import Position
 
@@ -67,17 +68,11 @@ class TradeTerminal:
         # feeder = CandleFeeder(self._currency_pair, self._period, 200)
 
         # 売買シグナルインディケーター
-        buy_signal_open = SIGNAL(feeder)
-        buy_signal_open.label = "buy"
-        buy_signal_open.style = {"marker": "^", "color": "red", "ms": 10}
-        buy_signal_close = SIGNAL(feeder)
-        buy_signal_close.label = "sell"
-        buy_signal_close.style = {"marker": "v", "color": "blue", "ms": 10}
-        sell_signal_open = SIGNAL(feeder)
-        sell_signal_open.label = "sell"
+        buy_signal_open = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY)
+        buy_signal_close = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL)
+        sell_signal_open = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY)
         sell_signal_open.style = {"marker": "v", "color": "green", "ms": 10}
-        sell_signal_close = SIGNAL(feeder)
-        sell_signal_close.label = "buy"
+        sell_signal_close = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL)
         sell_signal_close.style = {"marker": "^", "color": "purple", "ms": 10}
 
         # ローソク足を取得する
@@ -106,27 +101,20 @@ class TradeTerminal:
         adx_slow.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
 
         # STDDEVを取得する
-        stddev = STDDEV(feeder, 26, 1, AppliedPrice.CLOSE)
-        stddev.label = "stddev"
-        stddev.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+        stddev = STDDEV(feeder, 26, 1, "stddev")
 
         # ENVELOPEを取得する
         dev_rate1 = 0.011
         dev_rate2 = 0.015
-        env_u2 = ENVELOPE(feeder, 26, dev_rate2, AppliedPrice.CLOSE)
-        env_u2.label = "env_u2"
+        env_u2 = ENVELOPE(feeder, 26, dev_rate2, "env_u2")
         env_u2.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
-        env_u1 = ENVELOPE(feeder, 26, dev_rate1, AppliedPrice.CLOSE)
-        env_u1.label = "env_u1"
+        env_u1 = ENVELOPE(feeder, 26, dev_rate1, "env_u1")
         env_u1.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
-        env_md = ENVELOPE(feeder, 26, 0, AppliedPrice.CLOSE)
-        env_md.label = "env_md"
+        env_md = ENVELOPE(feeder, 26, 0, "env_md")
         env_md.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
-        env_l1 = ENVELOPE(feeder, 26, -dev_rate1, AppliedPrice.CLOSE)
-        env_l1.label = "env_l1"
+        env_l1 = ENVELOPE(feeder, 26, -dev_rate1, "env_l1")
         env_l1.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
-        env_l2 = ENVELOPE(feeder, 26, -dev_rate2, AppliedPrice.CLOSE)
-        env_l2.label = "env_l2"
+        env_l2 = ENVELOPE(feeder, 26, -dev_rate2, "env_l2")
         env_l2.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
 
         # チャート
@@ -138,7 +126,8 @@ class TradeTerminal:
         window_main.height_ratio = 3
         window_main.candle = candle
         window_main.indicators_left.extend(
-            [sma_fast, sma_middle, sma_slow,
+            [buy_signal_open, buy_signal_close, sell_signal_open, sell_signal_close,
+             sma_fast, sma_middle, sma_slow,
              bb_p3, bb_p2, bb_p1, bb_md, bb_m1, bb_m2, bb_m3,
              env_u2, env_u1, env_md, env_l1, env_l2]
         )
@@ -156,12 +145,6 @@ class TradeTerminal:
 
         shouldstop = False
         while not shouldstop:
-
-            # 売買シグナルインディケーター
-            buy_signal_open = SIGNAL(feeder, buy_signal_open)
-            buy_signal_close = SIGNAL(feeder, buy_signal_close)
-            sell_signal_open = SIGNAL(feeder, sell_signal_open)
-            sell_signal_close = SIGNAL(feeder, sell_signal_close)
 
             ##################################################
             # 買いストラテジー

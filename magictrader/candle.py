@@ -13,7 +13,7 @@ from magictrader.utils import EventArgs, EventHandler, TimeConverter
 
 class CandleFeeder:
     """
-    ローソク足を供給するクラス
+    ローソク足を供給します。
     """
 
     def __init__(self, currency_pair: str, period: str, bar_count: int, backtest_mode: bool = False, datetime_from: datetime = None, datetime_to: datetime = None):
@@ -295,7 +295,7 @@ class CandleFeeder:
 
     def _on_ohlc_updated(self, eargs: EventArgs):
         """
-        ローソク足更新イベントを実行する
+        ローソク足更新イベントを発生させます。
         """
         self._ohlc_updated.fire(eargs)
 
@@ -341,7 +341,7 @@ class CandleFeeder:
 
 class Candle:
     """
-    ローソク足を表すクラス
+    ローソク足を表します。
     """
 
     def __init__(self, feeder: CandleFeeder):
@@ -366,6 +366,9 @@ class Candle:
         self._load()
 
     def ohlc_updated(self, sender: object, eargs: EventArgs):
+        """
+        ローソク足が更新されると発生します。
+        """
         self._load()
 
     @property

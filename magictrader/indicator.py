@@ -5,11 +5,15 @@ from typing import List
 import talib
 
 from magictrader.candle import CandleFeeder
-from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
+from magictrader.const import (AppliedPrice, ModeBBANDS, ModeMACD,
+                               ModeTRADESIGNAL)
 from magictrader.utils import EventArgs
 
 
 class Indicator(metaclass=ABCMeta):
+    """
+    テクニカルインディケーターを表します。
+    """
 
     def __init__(self, feeder: CandleFeeder, label: str):
         self._feeder = feeder
@@ -22,16 +26,28 @@ class Indicator(metaclass=ABCMeta):
         self._load()
 
     def _apply_default_style(self):
+        """
+        既定のスタイルを適用します。
+        """
         self._style = {"linestyle": "solid", "color": "gray", "linewidth": 1, "alpha": 1}
 
     @abstractmethod
     def _load(self):
+        """
+        テクニカルインディケーターを読み込みます。
+        """
         pass
 
     def refresh(self):
+        """
+        テクニカルインディケーターを再読み込みします。
+        """
         self._load()
 
     def ohlc_updated(self, sender: object, eargs: EventArgs):
+        """
+        ローソク足が更新されると発生します。
+        """
         self._load()
 
     @property
@@ -63,7 +79,45 @@ class Indicator(metaclass=ABCMeta):
         self._style = value
 
 
+class TRADESIGNAL(Indicator):
+    """
+    売買シグナル
+    """
+
+    def __init__(self, feeder: CandleFeeder, mode_tradesignal: ModeTRADESIGNAL, label: str = None):
+        self._mode_tradesignal = mode_tradesignal
+        if label is None:
+            if self._mode_tradesignal == ModeTRADESIGNAL.BUY:
+                label = "buy signal"
+            elif self._mode_tradesignal == ModeTRADESIGNAL.SELL:
+                label = "sell signal"
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        if self._mode_tradesignal == ModeTRADESIGNAL.BUY:
+            self.style = {"marker": "^", "color": "red", "ms": 10}
+        elif self._mode_tradesignal == ModeTRADESIGNAL.SELL:
+            self.style = {"marker": "v", "color": "blue", "ms": 10}
+        else:
+            super()._apply_default_style()
+
+    def _load(self):
+        prev_times = self._times
+        prev_prices = self._prices
+
+        self._times = self._feeder.get_times()
+        self._prices = [None] * self._feeder.bar_count
+
+        for cur_idx, cur_time in enumerate(self._times):
+            for prev_idx, prev_time in enumerate(prev_times):
+                if prev_time == cur_time:
+                    self.prices[cur_idx] = prev_prices[prev_idx]
+
+
 class SMA(Indicator):
+    """
+    単純移動平均を表します。
+    """
 
     def __init__(self, feeder: CandleFeeder, period: int, label: str = "sma",
                  applied_price: AppliedPrice = AppliedPrice.CLOSE):
@@ -72,13 +126,14 @@ class SMA(Indicator):
         super().__init__(feeder, label)
 
     def _apply_default_style(self):
-        super()._apply_default_style()
         if 1 <= self._period <= 12:
             self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
         elif 13 <= self._period <= 74:
             self.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
         elif 75 <= self._period <= 200:
             self.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+        else:
+            super()._apply_default_style()
 
     def _load(self):
         self._times = self._feeder.get_times()
@@ -88,6 +143,9 @@ class SMA(Indicator):
 
 
 class BBANDS(Indicator):
+    """
+    ボリンジャーバンドを表します。
+    """
 
     def __init__(self, feeder: CandleFeeder, period: int, deviation: int, mode_bbands: ModeBBANDS,
                  label: str = "bbands", applied_price: AppliedPrice = AppliedPrice.CLOSE):
@@ -98,7 +156,6 @@ class BBANDS(Indicator):
         super().__init__(feeder, label)
 
     def _apply_default_style(self):
-        super()._apply_default_style()
         self.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.1}
 
     def _load(self):
@@ -114,12 +171,19 @@ class BBANDS(Indicator):
 
 
 class STDDEV(Indicator):
+    """
+    標準偏差を表します。
+    """
 
-    def __init__(self, feeder: CandleFeeder, period: int, deviation: int, applied_price: AppliedPrice):
+    def __init__(self, feeder: CandleFeeder, period: int, deviation: int,
+                 label: str = "stddev", applied_price: AppliedPrice = AppliedPrice.CLOSE):
         self._period = period
         self._deviation = deviation
         self._applied_price = applied_price
-        super().__init__(feeder, "stddev")
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        self.style = {"linestyle": "solid", "color": "purple", "linewidth": 1, "alpha": 1}
 
     def _load(self):
         self._times = self._feeder.get_times()
@@ -129,14 +193,18 @@ class STDDEV(Indicator):
 
 
 class MACD(Indicator):
+    """
+    MACDを表します。
+    """
 
-    def __init__(self, feeder: CandleFeeder, fast_period: int, slow_period: int, signal_period, mode_macd: ModeMACD, applied_price: AppliedPrice):
+    def __init__(self, feeder: CandleFeeder, fast_period: int, slow_period: int, signal_period, mode_macd: ModeMACD,
+                 label: str = "macd", applied_price: AppliedPrice = AppliedPrice.CLOSE):
         self._fast_period = fast_period
         self._slow_period = slow_period
         self._signal_period = signal_period
         self._mode_macd = mode_macd
         self._applied_price = applied_price
-        super().__init__(feeder, "macd")
+        super().__init__(feeder, label)
 
     def _load(self):
         self._times = self._feeder.get_times()
@@ -151,14 +219,17 @@ class MACD(Indicator):
 
 
 class ADX(Indicator):
-    # 仮実装(25を定数として使っている)
+    """
+    ADXを表します。
+    """
 
-    def __init__(self, feeder: CandleFeeder, period: int):
+    def __init__(self, feeder: CandleFeeder, period: int, label: str = "adx"):
         self._period = period
-        super().__init__(feeder, "adx")
+        super().__init__(feeder, label)
 
     def _load(self):
         self._times = self._feeder.get_times()
+        # NOTE:仮実装
         highs = self._feeder.get_prices(25, AppliedPrice.HIGH)
         lows = self._feeder.get_prices(25, AppliedPrice.LOW)
         closes = self._feeder.get_prices(25, AppliedPrice.CLOSE)
@@ -167,11 +238,15 @@ class ADX(Indicator):
 
 
 class RSI(Indicator):
+    """
+    RSIを表します。
+    """
 
-    def __init__(self, feeder: CandleFeeder, period: int, applied_price: AppliedPrice):
+    def __init__(self, feeder: CandleFeeder, period: int, label: str = "rsi",
+                 applied_price: AppliedPrice = AppliedPrice.CLOSE):
         self._period = period
         self._applied_price = applied_price
-        super().__init__(feeder, "rsi")
+        super().__init__(feeder, label)
 
     def _load(self):
         self._times = self._feeder.get_times()
@@ -181,13 +256,17 @@ class RSI(Indicator):
 
 
 class ENVELOPE(Indicator):
+    """
+    エンベロープを表します。
+    """
     # NOTE:仮実装
 
-    def __init__(self, feeder: CandleFeeder, period: int, deviation: float, applied_price: AppliedPrice):
+    def __init__(self, feeder: CandleFeeder, period: int, deviation: float,
+                 label: str = "envelope", applied_price: AppliedPrice = AppliedPrice.CLOSE):
         self._period = period
         self._deviation = deviation
         self._applied_price = applied_price
-        super().__init__(feeder, "envelope")
+        super().__init__(feeder, label)
 
     def _load(self):
         self._times = self._feeder.get_times()
@@ -195,23 +274,3 @@ class ENVELOPE(Indicator):
         prices = talib.SMA(prices, self._period)
         prices = prices * self._deviation
         self._prices = prices[-self._feeder.bar_count:].tolist()
-
-
-class SIGNAL(Indicator):
-    # NOTE:仮実装
-
-    def __init__(self, feeder: CandleFeeder, prev=None):
-        self._prev = prev
-        super().__init__(feeder, "signal")
-
-    def _load(self):
-        self._times = self._feeder.get_times()
-        self._prices = [None] * self._feeder.bar_count
-        if self._prev:
-            for idx_p, time_p in enumerate(self._prev.times):
-                if self._prev.prices[idx_p]:
-                    for idx_c, time_c in enumerate(self._times):
-                        if time_p == time_c:
-                            self._prices[idx_c] = self._prev.prices[idx_p]
-            self.label = self._prev.label
-            self.style = self._prev.style
