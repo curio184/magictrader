@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Setup for mtb."""
+"""Setup for MagicTrader."""
 
 import io
 import re
@@ -15,19 +15,19 @@ def readme():
 
 
 def version():
-    with io.open('zaifer/__init__.py', encoding='utf-8') as fp:
+    with io.open('magictrader/__init__.py', encoding='utf-8') as fp:
         return re.search(r'__version__ = \'(.*?)\'', fp.read()).group(1)
 
 
 setup(
-    name='mtb',
+    name='magictrader',
     version=version(),
     description="MagicTrader makes it easy to do system trade on zaif-exchange.",
     long_description=readme(),
     long_description_content_type='text/markdown',
     author='Yusuke Oya',
     author_email='curio@antique-cafe.net',
-    url='https://github.com/curio184/mtb',
+    url='https://github.com/curio184/magictrader',
     license='MIT',
     include_package_data=True,
     packages=find_packages(),
@@ -43,5 +43,5 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     keywords='zaif zaifapi zaif-exchange trade bot',
-    install_requires=['requests']
+    install_requires=['TA-Lib', 'matplotlib', 'mpl_finance', 'numpy', 'SQLAlchemy', 'zaifer', 'requests']
 )
