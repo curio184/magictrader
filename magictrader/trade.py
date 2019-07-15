@@ -153,6 +153,7 @@ class PositionRepository:
     def positions(self) -> List[Position]:
         return self._positions
 
+    @property
     def total_profit(self) -> float:
         return sum(list(map(lambda x: x.profit, self._positions)))
 

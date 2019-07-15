@@ -23,15 +23,7 @@ class TradeTerminal:
         self._datetime_from = datetime_from
         self._datetime_to = datetime_to
 
-        # Slackの設定
-        slack_token = "xoxb-393836145330-617219938608-F93SFPzgSZfD6JaxMh0MaYV8"
-        slack_channel = "#general"
-        slack_username = "短期売買ボット(5m)"
-        self._slack = SlackMessenger(slack_token, slack_channel, slack_username)
-
-        self._chart = None
-
-    def start(self):
+    def run(self):
 
         # ローソク足のフィーダーを作成する
         feeder = None
@@ -40,21 +32,21 @@ class TradeTerminal:
         elif self._trade_mode == "backtest":
             feeder = CandleFeeder(self._currency_pair, self._period, 200, True, self._datetime_from, self._datetime_to)
 
-        # ローソク足を作成する
-        candle = Candle(feeder)
-
         # 売買シグナルインディケーターを作成する
         buy_open_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY_OPEN)
         buy_close_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY_CLOSE)
         sell_open_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL_OPEN)
         sell_close_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL_CLOSE)
 
+        # ローソク足を作成する
+        candle = Candle(feeder)
+
         # テクニカルインディケーターを作成する
         sma_fast = SMA(feeder, 21)
         sma_slow = SMA(feeder, 89)
         adx_fast = ADX(feeder, 13)
         adx_slow = ADX(feeder, 26)
-        stddev = STDDEV(feeder, 20, 1, AppliedPrice.CLOSE)
+        stddev = STDDEV(feeder, 20, 1)
 
         # チャート画面(メイン)を作成する
         window_main = ChartWindow()
@@ -73,29 +65,22 @@ class TradeTerminal:
 
         # 画面を登録し、チャートを表示する
         chart = Chart()
-        self._chart = chart
         chart.add_window(window_main)
         chart.add_window(window_sub)
         chart.show()
 
         # ポジションのリポジトリを作成する
-        position_repo = PositionRepository()
-        position_repo.position_opened_eventhandler.add(self._position_opened)
-        position_repo.position_closed_eventhandler.add(self._position_closed)
+        position_repository = PositionRepository()
+        position_repository.position_opened_eventhandler.add(self._position_opened)
+        position_repository.position_closed_eventhandler.add(self._position_closed)
 
         while True:
 
-            if sma_slow.prices[-3] < sma_fast.prices[-3]  \
-                    and sma_slow.prices[-2] > sma_fast.prices[-2]:
+            if sma_fast.prices[-3] < sma_slow.prices[-3]  \
+                    and sma_fast.prices[-2] > sma_slow.prices[-2]:
 
-                position = position_repo.create_position()
+                position = position_repository.create_position()
                 position.open(candle.times[-1], "buy", candle.closes[-1], 1, "")
-
-            feeder.go_next()
-            chart.refresh()
-
-        pict_path = ""
-        chart.save_as_png(pict_path)
 
     def _position_opened(self, sender: object, eargs: EventArgs):
         """
@@ -113,10 +98,16 @@ class TradeTerminal:
         position_repository = eargs.params["position_repository"]
         self._send_position(position, position_repository)
 
-    def _send_position(self, position: Position, position_repo: PositionRepository):
+    def _send_position(self, position: Position, position_repository: PositionRepository):
         """
         ポジションを通知します。
         """
+
+        # Slackの設定
+        slack_token = "xoxb-393836145330-617219938608-F93SFPzgSZfD6JaxMh0MaYV8"
+        slack_channel = "#general"
+        slack_username = "短期売買ボット(5m)"
+        slack = SlackMessenger(slack_token, slack_channel, slack_username)
 
         # タイトル
         detail_title = "MTB:PureAlpha - ポジション{}：{}"
@@ -192,7 +183,7 @@ class TradeTerminal:
             )
 
         # 累計損益
-        pl_total = int(position_repo.total_profit)
+        pl_total = int(position_repository.total_profit)
         detail_pl_total = "累計損益：{}"
         detail_pl_total = detail_pl_total.format(
             "{:+,.0f}".format(pl_total)
@@ -217,13 +208,13 @@ class TradeTerminal:
         self._chart.save_as_png(pict_path)
 
         # メッセージを送信する
-        self._slack.send_file(message, pict_path)
+        slack.send_file(message, pict_path)
 
 
 if __name__ == "__main__":
 
     terminal = TradeTerminal("btc_jpy", "5m", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30))
-    terminal.start()
+    terminal.run()
 
     # # 日時を描画
     # self._ax[0].set_xticklabels(list(map(lambda x: "{0:%H:%M}".format(x), candle.times)), rotation=0)
