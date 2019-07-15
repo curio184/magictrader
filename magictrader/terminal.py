@@ -1,4 +1,5 @@
 import os
+import shutil
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
@@ -24,7 +25,11 @@ class TradeTerminal:
         self._datetime_to = datetime_to
 
         # INIの設定
-        self._inifile = INIFile(os.path.join(os.getcwd(), ini_filename))
+        ini_filepath = os.path.join(os.getcwd(), ini_filename)
+        if not os.path.exists(ini_filename):
+            template_path = os.path.join(os.path.dirname(__file__), "config/mt.ini")
+            shutil.copy(template_path, ini_filepath)
+        self._inifile = INIFile(ini_filepath)
 
         # ローソク足のフィーダーを作成する
         if self._trade_mode in ["practice", "forwardtest"]:
