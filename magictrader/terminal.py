@@ -65,6 +65,9 @@ class TradeTerminal:
 
         # ポジションのリポジトリを作成する
         self._position_repository = PositionRepository()
+        if self._trade_mode == "practice":
+            self._position_repository.position_opening_eventhandler.add(self._position_opening)
+            self._position_repository.position_closing_eventhandler.add(self._position_closing)
         self._position_repository.position_opened_eventhandler.add(self._position_opened)
         self._position_repository.position_closed_eventhandler.add(self._position_closed)
 
@@ -157,6 +160,66 @@ class TradeTerminal:
             新しい足が追加された最初の呼び出し時に１度だけTrueとなります。
         """
         pass
+
+    def _on_opening_position(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
+        """
+        ポジションを開くときに呼び出されます。
+        ポジションをどのように開くかを実装します。
+
+        Parameters
+        ----------
+        position : Position
+            オープンリクエストされたポジション
+        position_repository : PositionRepository
+            ポジションを管理するためのリポジトリ
+
+        Returns
+        -------
+        (bool, float, float)
+            1: ポジションを一部でも開くことに成功した場合Trueを返します。
+            2: 実際の約定価格を返します。
+            3: 実際の約定数量を返します。
+        """
+        return True, position.open_price, position.order_amount
+
+    def _on_closing_position(self, position: Position, position_repository: PositionRepository) -> float:
+        """
+        ポジションを閉じるときに呼び出されます。
+        ポジションをどのように閉じるかを実装します。
+
+        Parameters
+        ----------
+        position : Position
+            クローズリクエストされたポジション
+        position_repository : PositionRepository
+            ポジションを管理するためのリポジトリ
+
+        Returns
+        -------
+        float
+            実際の約定価格を返します。
+        """
+        return position.close_price
+
+    def _position_opening(self, sender: object, eargs: EventArgs):
+        """
+        ポジションを開くときに発生します。
+        """
+        position = eargs.params["position"]
+        position_repository = eargs.params["position_repository"]
+        result, price, amount = self._on_opening_position(position, position_repository)
+        eargs.params["result"] = result
+        eargs.params["price"] = price
+        eargs.params["amount"] = amount
+
+    def _position_closing(self, sender: object, eargs: EventArgs):
+        """
+        ポジションを閉じるときに発生します。
+        """
+        position = eargs.params["position"]
+        position_repository = eargs.params["position_repository"]
+        price = self._on_closing_position(position, position_repository)
+        eargs.params["price"] = price
 
     def _position_opened(self, sender: object, eargs: EventArgs):
         """

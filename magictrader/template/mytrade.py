@@ -112,9 +112,51 @@ class MyTradeTerminal(TradeTerminal):
             for long_position in long_positions:
                 long_position.close(candle.times[-1], candle.closes[-1], "close: golden cross")
 
+    def _on_opening_position(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
+        """
+        ポジションを開くときに呼び出されます。
+        ポジションをどのように開くかを実装します。
+
+        Parameters
+        ----------
+        position : Position
+            オープンリクエストされたポジション
+        position_repository : PositionRepository
+            ポジションを管理するためのリポジトリ
+
+        Returns
+        -------
+        (bool, float, float)
+            1: ポジションを一部でも開くことに成功した場合Trueを返します。
+            2: 実際の約定価格を返します。
+            3: 実際の約定数量を返します。
+        """
+        return True, position.open_price, position.order_amount
+
+    def _on_closing_position(self, position: Position, position_repository: PositionRepository) -> float:
+        """
+        ポジションを閉じるときに呼び出されます。
+        ポジションをどのように閉じるかを実装します。
+
+        Parameters
+        ----------
+        position : Position
+            クローズリクエストされたポジション
+        position_repository : PositionRepository
+            ポジションを管理するためのリポジトリ
+
+        Returns
+        -------
+        float
+            実際の約定価格を返します。
+        """
+        return position.close_price
+
 
 if __name__ == "__main__":
 
+    # 実践モードで実行します
+    # mytrade = MyTradeTerminal("btc_jpy", "5m", "practice")
     # フォワードテストモードで実行します
     # mytrade = MyTradeTerminal("btc_jpy", "5m", "forwardtest")
     # バックテストモードで実行します

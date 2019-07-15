@@ -12,6 +12,7 @@ class Position:
     def __init__(self):
         self._is_opened = False
         self._is_closed = False
+        self._is_canceled = False
         self._open_time = None
         self._open_action = ""
         self._open_price = None
@@ -20,6 +21,8 @@ class Position:
         self._close_price = None
         self._close_comment = ""
         self._order_amount = 0.0
+        self._position_opening_eventhandler = EventHandler(self)
+        self._position_closing_eventhandler = EventHandler(self)
         self._position_opened_eventhandler = EventHandler(self)
         self._position_closed_eventhandler = EventHandler(self)
 
@@ -27,12 +30,21 @@ class Position:
         """
         ポジションを開きます。
         """
-        self._is_opened = True
         self._open_time = dt
         self._open_action = action
         self._open_price = price
         self._order_amount = amount
         self._open_comment = comment
+        opening_eargs = EventArgs(
+            {"position": self, "result": False, "price": self._open_price, "amount": self._order_amount}
+        )
+        self._on_opening(opening_eargs)
+        if not opening_eargs.params["result"]:
+            self._is_canceled = True
+            return
+        self._open_price = opening_eargs.params["price"]
+        self._order_amount = opening_eargs.params["amount"]
+        self._is_opened = True
         self._on_opened(EventArgs({"position": self}))
 
     def close(self, dt: datetime, price: float, comment: str = ""):
@@ -43,6 +55,11 @@ class Position:
         self._close_time = dt
         self._close_price = price
         self._close_comment = comment
+        closing_eargs = EventArgs(
+            {"position": self, "price": self._close_price}
+        )
+        self._on_closing(closing_eargs)
+        self._close_price = closing_eargs.params["price"]
         self._on_closed(EventArgs({"position": self}))
 
     @property
@@ -52,6 +69,10 @@ class Position:
     @property
     def is_closed(self) -> bool:
         return self._is_closed
+
+    @property
+    def is_canceled(self) -> bool:
+        return self._is_canceled
 
     @property
     def open_time(self) -> datetime:
@@ -105,6 +126,18 @@ class Position:
         else:
             return 0.0
 
+    def _on_opening(self, eargs: EventArgs):
+        """
+        ポジションオープニングイベントを発生させます。
+        """
+        self._position_opening_eventhandler.fire(eargs)
+
+    def _on_closing(self, eargs: EventArgs):
+        """
+        ポジションクロージングイベントを発生させます。
+        """
+        self._position_closing_eventhandler.fire(eargs)
+
     def _on_opened(self, eargs: EventArgs):
         """
         ポジションオープンイベントを発生させます。
@@ -116,6 +149,20 @@ class Position:
         ポジションクローズイベントを発生させます。
         """
         self._position_closed_eventhandler.fire(eargs)
+
+    @property
+    def position_opening_eventhandler(self) -> EventHandler:
+        """
+        ポジションオープニングイベントのハンドラ
+        """
+        return self._position_opening_eventhandler
+
+    @property
+    def position_closing_eventhandler(self) -> EventHandler:
+        """
+        ポジションクロージングイベントのハンドラ
+        """
+        return self._position_closing_eventhandler
 
     @property
     def position_opened_eventhandler(self) -> EventHandler:
@@ -139,13 +186,17 @@ class PositionRepository:
 
     def __init__(self):
         self._positions = []
+        self._position_opening_eventhandler = EventHandler(self)
+        self._position_closing_eventhandler = EventHandler(self)
         self._position_opened_eventhandler = EventHandler(self)
         self._position_closed_eventhandler = EventHandler(self)
 
     def create_position(self):
         position = Position()
-        position.position_opened_eventhandler.add(self._on_position_opened)   # イベントをリレーする
-        position.position_closed_eventhandler.add(self._on_position_closed)   # イベントをリレーする
+        position.position_opening_eventhandler.add(self._on_position_opening)   # イベントをリレーする
+        position.position_closing_eventhandler.add(self._on_position_closing)   # イベントをリレーする
+        position.position_opened_eventhandler.add(self._on_position_opened)     # イベントをリレーする
+        position.position_closed_eventhandler.add(self._on_position_closed)     # イベントをリレーする
         self._positions.append(position)
         return position
 
@@ -156,6 +207,20 @@ class PositionRepository:
     @property
     def total_profit(self) -> float:
         return sum(list(map(lambda x: x.profit, self._positions)))
+
+    def _on_position_opening(self, sender: object, eargs: EventArgs):
+        """
+        ポジションオープニングイベントを発生させます。
+        """
+        eargs.params["position_repository"] = self
+        self._position_opening_eventhandler.fire(eargs)
+
+    def _on_position_closing(self, sender: object, eargs: EventArgs):
+        """
+        ポジションクロージングイベントを発生させます。
+        """
+        eargs.params["position_repository"] = self
+        self._position_closing_eventhandler.fire(eargs)
 
     def _on_position_opened(self, sender: object, eargs: EventArgs):
         """
@@ -170,6 +235,20 @@ class PositionRepository:
         """
         eargs.params["position_repository"] = self
         self._position_closed_eventhandler.fire(eargs)
+
+    @property
+    def position_opening_eventhandler(self) -> EventHandler:
+        """
+        ポジションオープニングイベントのハンドラ
+        """
+        return self._position_opening_eventhandler
+
+    @property
+    def position_closing_eventhandler(self) -> EventHandler:
+        """
+        ポジションクローズイベントのハンドラ
+        """
+        return self._position_closing_eventhandler
 
     @property
     def position_opened_eventhandler(self) -> EventHandler:
