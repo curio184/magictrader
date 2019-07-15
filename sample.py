@@ -1,4 +1,5 @@
 import os
+from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
@@ -23,36 +24,42 @@ class TradeTerminal:
         self._datetime_from = datetime_from
         self._datetime_to = datetime_to
 
-    def run(self):
-
         # ローソク足のフィーダーを作成する
-        feeder = None
         if self._trade_mode in ["practice", "forwardtest"]:
-            feeder = CandleFeeder(self._currency_pair, self._period, 200)
+            self._feeder = CandleFeeder(self._currency_pair, self._period, 200)
         elif self._trade_mode == "backtest":
-            feeder = CandleFeeder(self._currency_pair, self._period, 200, True, self._datetime_from, self._datetime_to)
+            self._feeder = CandleFeeder(self._currency_pair, self._period, 200, True, self._datetime_from, self._datetime_to)
 
         # 売買シグナルインディケーターを作成する
-        buy_open_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY_OPEN)
-        buy_close_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.BUY_CLOSE)
-        sell_open_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL_OPEN)
-        sell_close_signal = TRADESIGNAL(feeder, ModeTRADESIGNAL.SELL_CLOSE)
+        self._buy_open_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.BUY_OPEN)
+        self._buy_close_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.BUY_CLOSE)
+        self._sell_open_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.SELL_OPEN)
+        self._sell_close_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.SELL_CLOSE)
+
+        # チャートを作成する
+        self._chart = Chart()
+
+    def run(self):
 
         # ローソク足を作成する
-        candle = Candle(feeder)
+        candle = Candle(self._feeder)
 
         # テクニカルインディケーターを作成する
-        sma_fast = SMA(feeder, 21)
-        sma_slow = SMA(feeder, 89)
-        adx_fast = ADX(feeder, 13)
-        adx_slow = ADX(feeder, 26)
-        stddev = STDDEV(feeder, 20, 1)
+        sma_fast = SMA(self._feeder, 21)
+        sma_slow = SMA(self._feeder, 89)
+        adx_fast = ADX(self._feeder, 13)
+        adx_slow = ADX(self._feeder, 26)
+        stddev = STDDEV(self._feeder, 20, 1)
 
         # チャート画面(メイン)を作成する
         window_main = ChartWindow()
         window_main.title = "btc_jpy"
         window_main.height_ratio = 3
         window_main.candle = candle                     # ローソク足を設定
+        window_main.indicators_left.append(self._buy_open_signal)
+        window_main.indicators_left.append(self._buy_close_signal)
+        window_main.indicators_left.append(self._sell_open_signal)
+        window_main.indicators_left.append(self._sell_close_signal)
         window_main.indicators_left.append(sma_fast)    # 短期SMAを設定
         window_main.indicators_left.append(sma_slow)    # 長期SMAを設定
 
@@ -64,10 +71,9 @@ class TradeTerminal:
         window_sub.indicators_right.append(stddev)
 
         # 画面を登録し、チャートを表示する
-        chart = Chart()
-        chart.add_window(window_main)
-        chart.add_window(window_sub)
-        chart.show()
+        self._chart.add_window(window_main)
+        self._chart.add_window(window_sub)
+        self._chart.show()
 
         # ポジションのリポジトリを作成する
         position_repository = PositionRepository()
@@ -81,6 +87,9 @@ class TradeTerminal:
 
                 position = position_repository.create_position()
                 position.open(candle.times[-1], "buy", candle.closes[-1], 1, "")
+
+            self._feeder.go_next()
+            self._chart.refresh()
 
     def _position_opened(self, sender: object, eargs: EventArgs):
         """
@@ -104,13 +113,13 @@ class TradeTerminal:
         """
 
         # Slackの設定
-        slack_token = "xoxb-393836145330-617219938608-F93SFPzgSZfD6JaxMh0MaYV8"
+        slack_token = "xoxb-393836145330-617219938608-McvAHTnmtmZVw0sj888UOjT5"
         slack_channel = "#general"
         slack_username = "短期売買ボット(5m)"
         slack = SlackMessenger(slack_token, slack_channel, slack_username)
 
         # タイトル
-        detail_title = "MTB:PureAlpha - ポジション{}：{}"
+        detail_title = slack_username + " - ポジション{}：{}"
         if position.close_action == "":
             detail_title = detail_title.format(
                 "オープン", "買い" if position.open_action == "buy" else "売り"
@@ -215,10 +224,3 @@ if __name__ == "__main__":
 
     terminal = TradeTerminal("btc_jpy", "5m", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30))
     terminal.run()
-
-    # # 日時を描画
-    # self._ax[0].set_xticklabels(list(map(lambda x: "{0:%H:%M}".format(x), candle.times)), rotation=0)
-    # self._fig.autofmt_xdate()
-    # # 日時を描画
-    # self._ax[0].set_xticklabels(list(map(lambda x: "{0:%H:%M}".format(x), candle.times)), rotation=0)
-    # self._fig.autofmt_xdate()
