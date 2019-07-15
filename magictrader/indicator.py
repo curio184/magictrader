@@ -7,7 +7,8 @@ import talib
 from magictrader.candle import CandleFeeder
 from magictrader.const import (AppliedPrice, ModeBBANDS, ModeMACD,
                                ModeTRADESIGNAL)
-from magictrader.utils import EventArgs
+from magictrader.event import EventArgs, TradeEventArgs
+from magictrader.trade import Position
 
 
 class Indicator(metaclass=ABCMeta):
@@ -17,7 +18,7 @@ class Indicator(metaclass=ABCMeta):
 
     def __init__(self, feeder: CandleFeeder, label: str):
         self._feeder = feeder
-        self._feeder.ohlc_updated.add(self.ohlc_updated)
+        self._feeder.ohlc_updated.add(self._ohlc_updated)
         self._times = []
         self._prices = []
         self._label = label
@@ -44,9 +45,9 @@ class Indicator(metaclass=ABCMeta):
         """
         self._load()
 
-    def ohlc_updated(self, sender: object, eargs: EventArgs):
+    def _ohlc_updated(self, sender: object, eargs: EventArgs):
         """
-        ローソク足が更新されると発生します。
+        ローソク足が更新されたときに発生します。
         """
         self._load()
 
@@ -120,6 +121,18 @@ class TRADESIGNAL(Indicator):
             for prev_idx, prev_time in enumerate(prev_times):
                 if prev_time == cur_time:
                     self.prices[cur_idx] = prev_prices[prev_idx]
+
+    def position_opened(self, sender: Position, eargs: TradeEventArgs):
+        """
+        ポジションが開かれたときに発生します。
+        """
+        self._prices[-1] = eargs.position.open_price
+
+    def position_closed(self, sender: Position, eargs: TradeEventArgs):
+        """
+        ポジションが閉じられたときに発生します。
+        """
+        self._prices[-1] = eargs.position.close_price
 
 
 class SMA(Indicator):

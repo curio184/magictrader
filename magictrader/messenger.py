@@ -1,9 +1,9 @@
-
-from typing import List
+import os
 
 import requests
 
-from magictrader.trade import Position
+from magictrader.event import TradeEventArgs
+from magictrader.trade import Position, PositionRepository
 
 
 class SlackMessenger:
@@ -12,12 +12,11 @@ class SlackMessenger:
     https://api.slack.com/methods
     """
 
-    def __init__(self, slack_token: str, slack_channel: str, slack_username: str, silent: bool = False):
+    def __init__(self, slack_token: str, slack_channel: str, slack_username: str):
 
         self._slack_token = slack_token
         self._slack_channel = slack_channel
         self._slack_username = slack_username
-        self._silent = silent
 
     def send_message(self, message: str):
         """
@@ -28,9 +27,6 @@ class SlackMessenger:
         message : str
             メッセージ
         """
-        if self._silent:
-            return
-
         try:
             param = {
                 "token": self._slack_token,
@@ -53,10 +49,6 @@ class SlackMessenger:
         file_path : str
             送信する画像のパス
         """
-
-        if self._silent:
-            return
-
         try:
             with open(file_path, "rb") as file_content:
                 files = {"file": file_content}
@@ -72,7 +64,7 @@ class SlackMessenger:
         except Exception as ex:
             print(ex)
 
-    def send_position(self, position: Position, histories: List[Position], balance_fix: float, file_path: str):
+    def send_position(self, position_repo: PositionRepository, position: Position, pict_path: str):
 
         # タイトル
         detail_title = "MTB:PureAlpha - ポジション{}：{}"
@@ -133,14 +125,14 @@ class SlackMessenger:
         # 注文理由
         detail_open = "注文理由：{}"
         detail_open = detail_open.format(
-            position.open_label
+            position.open_comment
         )
 
         # 決済理由
         detail_close = "決済理由：{}"
         if position.close_time:
             detail_close = detail_close.format(
-                position.close_label
+                position.close_comment
             )
         else:
             detail_close = detail_close.format(
@@ -148,9 +140,7 @@ class SlackMessenger:
             )
 
         # 累計損益
-        pl_total = int(sum(list(map(lambda x: x.profit, histories))))
-        pl_total += position.profit
-        pl_total += balance_fix
+        pl_total = int(position_repo.total_profit)
         detail_pl_total = "累計損益：{}"
         detail_pl_total = detail_pl_total.format(
             "{:+,.0f}".format(pl_total)
@@ -168,12 +158,18 @@ class SlackMessenger:
         message += detail_pl_total + "\n"
 
         # メッセージを送信する
-        self.send_file(message, file_path)
+        self.send_file(message, pict_path)
 
-    @property
-    def silent(self) -> bool:
-        return self._silent
+    def position_opened(self, sender: object, eargs: TradeEventArgs):
+        """
+        ポジションが開かれたときに発生します。
+        """
+        pict_path = os.path.dirname(os.path.abspath(__file__)) + "report/chart.png"
+        self.send_position(eargs.position_repo, eargs.position, pict_path)
 
-    @silent.setter
-    def silent(self, value: bool):
-        self._silent = value
+    def position_closed(self, sender: object, eargs: TradeEventArgs):
+        """
+        ポジションが閉じられたときに発生します。
+        """
+        pict_path = os.path.dirname(os.path.abspath(__file__)) + "report/chart.png"
+        self.send_position(eargs.position_repo, eargs.position, pict_path)

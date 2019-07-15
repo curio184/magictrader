@@ -34,31 +34,3 @@ class TimeConverter:
         unixtimeからstrに変換する
         """
         return "{0:%Y-%m-%d %H:%M:%S}".format(datetime.fromtimestamp(from_unixtime))
-
-
-class EventArgs:
-    """
-    イベント引数
-    """
-
-    pass
-
-
-class EventHandler:
-    """
-    イベントハンドラー
-    """
-
-    def __init__(self, obj):
-        self._obj = obj
-        self._funcs = []
-
-    def add(self, func):
-        self._funcs.append(func)
-
-    def remove(self, func):
-        self._funcs.remove(func)
-
-    def fire(self, eargs: EventArgs):
-        for func in self._funcs:
-            func(self._obj, eargs)

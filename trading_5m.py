@@ -309,7 +309,7 @@ class TradeTerminal:
 
             # クローズ(label="標準偏差順張り")
             if buy_current_position \
-                    and buy_current_position.open_label == "標準偏差順張り":
+                    and buy_current_position.open_comment == "標準偏差順張り":
 
                 # 利確トリガー(BB: +1σ下抜け) ⇒ 足の確定を待つ
                 if buy_current_position and buy_current_position.hold_period >= 4:
@@ -346,7 +346,7 @@ class TradeTerminal:
 
             # クローズ(label="エンベロープ逆張り")
             if buy_current_position \
-                    and buy_current_position.open_label == "エンベロープ逆張り":
+                    and buy_current_position.open_comment == "エンベロープ逆張り":
 
                 # 利確トリガー(ENV: env_mdタッチ) ⇒ 足の確定を待たない
                 if buy_current_position and buy_current_position.hold_period >= 1:
@@ -601,7 +601,7 @@ class TradeTerminal:
 
             # クローズ(label="標準偏差順張り")
             if sell_current_position \
-                    and sell_current_position.open_label == "標準偏差順張り":
+                    and sell_current_position.open_comment == "標準偏差順張り":
 
                 # 利確トリガー(BB: -1σ上抜け) ⇒ 足の確定を待つ
                 if sell_current_position and sell_current_position.hold_period >= 4:
@@ -650,7 +650,7 @@ class TradeTerminal:
 
             # クローズ(label="下げ基調のデッドクロス")
             if sell_current_position \
-                    and sell_current_position.open_label == "調整局面のデッドクロス":
+                    and sell_current_position.open_comment == "調整局面のデッドクロス":
 
                 # 利確トリガー(BB: -1σ上抜け) ⇒ 足の確定を待つ
                 if sell_current_position and sell_current_position.hold_period >= 1:
@@ -702,7 +702,7 @@ class TradeTerminal:
 
             # クローズ(label="エンベロープ逆張り")
             if sell_current_position \
-                    and sell_current_position.open_label == "エンベロープ逆張り":
+                    and sell_current_position.open_comment == "エンベロープ逆張り":
 
                 # 利確トリガー(ENV: env_mdタッチ) ⇒ 足の確定を待たない
                 if sell_current_position and sell_current_position.hold_period >= 1:

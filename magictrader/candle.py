@@ -7,8 +7,9 @@ from sqlalchemy import asc
 from zaifer import Chart as ChartAPI
 
 from magictrader.const import AppliedPrice, Period
+from magictrader.event import EventArgs, EventHandler
 from magictrader.model import CandleOHLC, DBContext
-from magictrader.utils import EventArgs, EventHandler, TimeConverter
+from magictrader.utils import TimeConverter
 
 
 class CandleFeeder:
@@ -54,7 +55,7 @@ class CandleFeeder:
         self._server_request_span = 3.0
         self._server_request_latest = None
         self._ohlcs = {}
-        self._ohlc_updated = EventHandler(self)
+        self._ohlc_updated_eventhandler = EventHandler(self)
         self.go_next()
 
     def get_ohlcs(self, extra_bar_count: int = 0) -> dict:
@@ -297,7 +298,7 @@ class CandleFeeder:
         """
         ローソク足更新イベントを発生させます。
         """
-        self._ohlc_updated.fire(eargs)
+        self._ohlc_updated_eventhandler.fire(eargs)
 
     @property
     def currency_pair(self) -> str:
@@ -332,11 +333,11 @@ class CandleFeeder:
         return self._datetime_cursor
 
     @property
-    def ohlc_updated(self) -> EventHandler:
+    def ohlc_updated_eventhandler(self) -> EventHandler:
         """
         ローソク足更新イベントのハンドラ
         """
-        return self._ohlc_updated
+        return self._ohlc_updated_eventhandler
 
 
 class Candle:
@@ -346,7 +347,7 @@ class Candle:
 
     def __init__(self, feeder: CandleFeeder):
         self._feeder = feeder
-        self._feeder.ohlc_updated.add(self.ohlc_updated)
+        self._feeder.ohlc_updated.add(self._ohlc_updated)
         self._times = []
         self._opens = []
         self._closes = []
@@ -363,11 +364,14 @@ class Candle:
         self._highs = candles["highs"].tolist()
 
     def refresh(self):
+        """
+        ローソク足を再読み込みします。
+        """
         self._load()
 
-    def ohlc_updated(self, sender: object, eargs: EventArgs):
+    def _ohlc_updated(self, sender: object, eargs: EventArgs):
         """
-        ローソク足が更新されると発生します。
+        ローソク足が更新されたときに発生します。
         """
         self._load()
 
