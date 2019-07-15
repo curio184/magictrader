@@ -1,5 +1,8 @@
 MagicTrader
 =============
+![](https://img.shields.io/apm/l/vim-mode.svg)
+![](https://img.shields.io/badge/Python-after%20v3-red.svg)
+[![](https://img.shields.io/pypi/v/magictrader.svg)](https://pypi.org/project/magictrader/)
 
 MagicTraderとは、zaif-exchangeでシステムトレードを行うためのフレームワークです。  
 ローソク足、テクニカルインディケーターの取得はもちろん、  
