@@ -36,7 +36,7 @@ class Position:
         self._order_amount = amount
         self._open_comment = comment
         opening_eargs = EventArgs(
-            {"position": self, "result": False, "price": self._open_price, "amount": self._order_amount}
+            {"position": self, "result": True, "price": self._open_price, "amount": self._order_amount}
         )
         self._on_opening(opening_eargs)
         if not opening_eargs.params["result"]:
