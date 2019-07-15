@@ -1,1 +1,1 @@
-include magictrader/template/mt.ini
+recursive-include magictrader/template *.py *.ini
