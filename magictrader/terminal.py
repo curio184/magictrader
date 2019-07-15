@@ -11,6 +11,7 @@ from magictrader.indicator import TRADESIGNAL
 from magictrader.inifile import INIFile
 from magictrader.messenger import SlackMessenger
 from magictrader.trade import Position, PositionRepository
+from magictrader.utils import TimeConverter
 
 
 class TradeTerminal:
@@ -77,8 +78,29 @@ class TradeTerminal:
         # チャートを表示する
         self._chart.show()
 
+        is_newbar = False
+        evaluated_til = datetime(1900, 1, 1)
+
         while True:
-            self._on_tick(self._candle, data_bag, self._position_repository)
+
+            # タイトルを更新する
+            self._window_main.title = "{} : {} - {} / total_profit : {}".format(
+                self._currency_pair,
+                self._candle.times[0].strftime("%Y-%m-%d %H:%M"),
+                self._candle.times[-1].strftime("%Y-%m-%d %H:%M"),
+                "{:+,.0f}".format(int(self._position_repository.total_profit))
+            )
+
+            # 新しい足が追加されたかどうかを評価する
+            if self._candle.times[-1] > evaluated_til:
+                evaluated_til = self._candle.times[-1]
+                is_newbar = True
+
+            # ティックを評価する
+            self._on_tick(self._candle, data_bag, self._position_repository, is_newbar)
+
+            is_newbar = False
+
             self._feeder.go_next()
             self._chart.refresh()
 
@@ -103,7 +125,7 @@ class TradeTerminal:
         pass
 
     @abstractmethod
-    def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository):
+    def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository, is_newbar: bool):
         """
         on_tickイベントは、ローソク足のデータが更新されるたびに呼び出されます。
 
@@ -131,6 +153,8 @@ class TradeTerminal:
             また、次のon_tickイベントに受け渡したいデータを格納します。
         position_repository : PositionRepository
             ポジションを管理するためのリポジトリ
+        is_newbar : bool
+            新しい足が追加された最初の呼び出し時に１度だけTrueとなります。
         """
         pass
 

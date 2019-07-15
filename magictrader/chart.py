@@ -195,6 +195,7 @@ class Chart:
 
         # 図表
         fig = plt.figure(figsize=(12, 6))
+        fig.canvas.set_window_title("MagicTrader")
 
         # 図表のレイアウト
         gs_master = GridSpec(

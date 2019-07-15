@@ -56,7 +56,7 @@ class MyTradeTerminal(TradeTerminal):
         data_bag["rsi_fast"] = rsi_fast
         data_bag["rsi_slow"] = rsi_slow
 
-    def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository):
+    def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository, is_newbar: bool):
         """
         on_tickイベントは、ローソク足のデータが更新されるたびに呼び出されます。
 
@@ -84,6 +84,8 @@ class MyTradeTerminal(TradeTerminal):
             また、次のon_tickイベントに受け渡したいデータを格納します。
         position_repository : PositionRepository
             ポジションを管理するためのリポジトリ
+        is_newbar : bool
+            新しい足が追加された最初の呼び出し時に１度だけTrueとなります。
         """
 
         # 受け渡されたデータを引き出す
