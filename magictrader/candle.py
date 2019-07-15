@@ -347,7 +347,7 @@ class Candle:
 
     def __init__(self, feeder: CandleFeeder):
         self._feeder = feeder
-        self._feeder.ohlc_updated.add(self._ohlc_updated)
+        self._feeder.ohlc_updated_eventhandler.add(self._ohlc_updated)
         self._times = []
         self._opens = []
         self._closes = []

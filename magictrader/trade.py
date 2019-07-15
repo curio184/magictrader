@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 
-from magictrader.event import TradeEventArgs, TradeEventHandler
+from magictrader.event import EventArgs, EventHandler
 
 
 class Position:
@@ -20,8 +20,8 @@ class Position:
         self._close_price = None
         self._close_comment = ""
         self._order_amount = 0.0
-        self._position_opened_eventhandler = TradeEventHandler(self)
-        self._position_closed_eventhandler = TradeEventHandler(self)
+        self._position_opened_eventhandler = EventHandler(self)
+        self._position_closed_eventhandler = EventHandler(self)
 
     def open(self, dt: datetime, action: str, price: float, amount: float, comment: str = ""):
         """
@@ -33,7 +33,7 @@ class Position:
         self._open_price = price
         self._order_amount = amount
         self._open_comment = comment
-        self._on_opened(TradeEventArgs(self))
+        self._on_opened(EventArgs({"position": self}))
 
     def close(self, dt: datetime, price: float, comment: str = ""):
         """
@@ -43,7 +43,7 @@ class Position:
         self._close_time = dt
         self._close_price = price
         self._close_comment = comment
-        self._on_closed(TradeEventArgs(self))
+        self._on_closed(EventArgs({"position": self}))
 
     @property
     def is_opened(self) -> bool:
@@ -105,27 +105,27 @@ class Position:
         else:
             return 0.0
 
-    def _on_opened(self, eargs: TradeEventArgs):
+    def _on_opened(self, eargs: EventArgs):
         """
         ポジションオープンイベントを発生させます。
         """
         self._position_opened_eventhandler.fire(eargs)
 
-    def _on_closed(self, eargs: TradeEventArgs):
+    def _on_closed(self, eargs: EventArgs):
         """
         ポジションクローズイベントを発生させます。
         """
         self._position_closed_eventhandler.fire(eargs)
 
     @property
-    def position_opened_eventhandler(self) -> TradeEventHandler:
+    def position_opened_eventhandler(self) -> EventHandler:
         """
         ポジションオープンイベントのハンドラ
         """
         return self._position_opened_eventhandler
 
     @property
-    def position_closed_eventhandler(self) -> TradeEventHandler:
+    def position_closed_eventhandler(self) -> EventHandler:
         """
         ポジションクローズイベントのハンドラ
         """
@@ -139,8 +139,8 @@ class PositionRepository:
 
     def __init__(self):
         self._positions = []
-        self._position_opened_eventhandler = TradeEventHandler(self)
-        self._position_closed_eventhandler = TradeEventHandler(self)
+        self._position_opened_eventhandler = EventHandler(self)
+        self._position_closed_eventhandler = EventHandler(self)
 
     def create_position(self):
         position = Position()
@@ -156,29 +156,29 @@ class PositionRepository:
     def total_profit(self) -> float:
         return sum(list(map(lambda x: x.profit, self._positions)))
 
-    def _on_position_opened(self, sender: object, eargs: TradeEventArgs):
+    def _on_position_opened(self, sender: object, eargs: EventArgs):
         """
         ポジションオープンイベントを発生させます。
         """
-        eargs.position_repository = self
+        eargs.params["position_repository"] = self
         self._position_opened_eventhandler.fire(eargs)
 
-    def _on_position_closed(self, sender: object, eargs: TradeEventArgs):
+    def _on_position_closed(self, sender: object, eargs: EventArgs):
         """
         ポジションクローズイベントを発生させます。
         """
-        eargs.position_repository = self
+        eargs.params["position_repository"] = self
         self._position_closed_eventhandler.fire(eargs)
 
     @property
-    def position_opened_eventhandler(self) -> TradeEventHandler:
+    def position_opened_eventhandler(self) -> EventHandler:
         """
         ポジションオープンイベントのハンドラ
         """
         return self._position_opened_eventhandler
 
     @property
-    def position_closed_eventhandler(self) -> TradeEventHandler:
+    def position_closed_eventhandler(self) -> EventHandler:
         """
         ポジションクローズイベントのハンドラ
         """

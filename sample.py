@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
@@ -21,6 +22,14 @@ class TradeTerminal:
         self._trade_mode = trade_mode
         self._datetime_from = datetime_from
         self._datetime_to = datetime_to
+
+        # Slackの設定
+        slack_token = "xoxb-393836145330-617219938608-F93SFPzgSZfD6JaxMh0MaYV8"
+        slack_channel = "#general"
+        slack_username = "短期売買ボット(5m)"
+        self._slack = SlackMessenger(slack_token, slack_channel, slack_username)
+
+        self._chart = None
 
     def start(self):
 
@@ -64,26 +73,15 @@ class TradeTerminal:
 
         # 画面を登録し、チャートを表示する
         chart = Chart()
+        self._chart = chart
         chart.add_window(window_main)
         chart.add_window(window_sub)
         chart.show()
 
-        # Slack
-        slack_token = "xoxb-393836145330-617219938608-F93SFPzgSZfD6JaxMh0MaYV8"
-        slack_channel = "#general"
-        slack_username = "短期売買ボット(5m)"
-        slack = SlackMessenger(slack_token, slack_channel, slack_username)
-
         # ポジションのリポジトリを作成する
         position_repo = PositionRepository()
-        position_repo.position_opened_eventhandler.add(buy_open_signal.position_opened)
-        position_repo.position_opened_eventhandler.add(sell_open_signal.position_opened)
-        position_repo.position_opened_eventhandler.add(chart.position_opened)
-        position_repo.position_opened_eventhandler.add(slack.position_opened)
-        position_repo.position_opened_eventhandler.add(buy_close_signal.position_closed)
-        position_repo.position_opened_eventhandler.add(sell_close_signal.position_closed)
-        position_repo.position_closed_eventhandler.add(chart.position_closed)
-        position_repo.position_closed_eventhandler.add(slack.position_closed)
+        position_repo.position_opened_eventhandler.add(self._position_opened)
+        position_repo.position_closed_eventhandler.add(self._position_closed)
 
         while True:
 
@@ -98,6 +96,128 @@ class TradeTerminal:
 
         pict_path = ""
         chart.save_as_png(pict_path)
+
+    def _position_opened(self, sender: object, eargs: EventArgs):
+        """
+        ポジションが開かれたときに発生します。
+        """
+        position = eargs.params["position"]
+        position_repository = eargs.params["position_repository"]
+        self._send_position(position, position_repository)
+
+    def _position_closed(self, sender: object, eargs: EventArgs):
+        """
+        ポジションが閉じられたときに発生します。
+        """
+        position = eargs.params["position"]
+        position_repository = eargs.params["position_repository"]
+        self._send_position(position, position_repository)
+
+    def _send_position(self, position: Position, position_repo: PositionRepository):
+        """
+        ポジションを通知します。
+        """
+
+        # タイトル
+        detail_title = "MTB:PureAlpha - ポジション{}：{}"
+        if position.close_action == "":
+            detail_title = detail_title.format(
+                "オープン", "買い" if position.open_action == "buy" else "売り"
+            )
+        else:
+            detail_title = detail_title.format(
+                "クローズ", "買い" if position.close_action == "buy" else "売り"
+            )
+
+        # 期間
+        detail_date = "期間　　：{} → {}"
+        if position.close_time:
+            if position.open_time.date == position.close_time.date:
+                detail_date = detail_date.format(
+                    "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
+                    "{0:%H:%M:%S}".format(position.close_time)
+                )
+            else:
+                detail_date = detail_date.format(
+                    "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
+                    "{0:%Y-%m-%d %H:%M:%S}".format(position.close_time)
+                )
+        else:
+            detail_date = detail_date.format(
+                "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
+                "未決済"
+            )
+
+        # 価格
+        detail_price = "{}：{} → {}"
+        if position.open_action == "buy":
+            detail_price = detail_price.format(
+                "ロング　",
+                "{:,.0f}".format(position.open_price),
+                "{:,.0f}".format(position.close_price) if position.close_price else "未決済"
+            )
+        else:
+            detail_price = detail_price.format(
+                "ショート",
+                "{:,.0f}".format(position.open_price),
+                "{:,.0f}".format(position.close_price) if position.close_price else "未決済"
+            )
+
+        # 損益
+        detail_pl = "損益　　：{}"
+        if position.close_time:
+            detail_pl = detail_pl.format(
+                "{:+,.0f}".format(position.profit)
+            )
+        else:
+            detail_pl = detail_pl.format(
+                "-"
+            )
+
+        # 注文理由
+        detail_open = "注文理由：{}"
+        detail_open = detail_open.format(
+            position.open_comment
+        )
+
+        # 決済理由
+        detail_close = "決済理由：{}"
+        if position.close_time:
+            detail_close = detail_close.format(
+                position.close_comment
+            )
+        else:
+            detail_close = detail_close.format(
+                "-"
+            )
+
+        # 累計損益
+        pl_total = int(position_repo.total_profit)
+        detail_pl_total = "累計損益：{}"
+        detail_pl_total = detail_pl_total.format(
+            "{:+,.0f}".format(pl_total)
+        )
+
+        # メッセージを組み立てる
+        message = ""
+        message += detail_title + "\n"
+        message += detail_date + "\n"
+        message += detail_price + "\n"
+        message += detail_pl + "\n"
+        message += detail_open + "\n"
+        message += detail_close + "\n"
+        message += "--------------------" + "\n"
+        message += detail_pl_total + "\n"
+
+        # チャートを画像として保存する
+        pict_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "report")
+        if not os.path.exists(pict_dir):
+            os.mkdir(pict_dir)
+        pict_path = os.path.join(pict_dir, "chart.png")
+        self._chart.save_as_png(pict_path)
+
+        # メッセージを送信する
+        self._slack.send_file(message, pict_path)
 
 
 if __name__ == "__main__":

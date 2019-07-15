@@ -9,7 +9,6 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from six.moves import xrange, zip
 
 from magictrader.candle import Candle
-from magictrader.event import TradeEventArgs
 from magictrader.indicator import Indicator
 
 
@@ -449,19 +448,3 @@ class Chart:
         lines.set_color(colors)
         polys.set_verts(barVerts)
         polys.set_color(colors)
-
-    def position_opened(self, sender: object, eargs: TradeEventArgs):
-        """
-        ポジションが開かれたときに発生します。
-        """
-        pict_dir = os.path.dirname(os.path.abspath(__file__)) + "report/"
-        pict_name = dir + "chart.png"
-        self.save_as_png(pict_dir + pict_name)
-
-    def position_closed(self, sender: object, eargs: TradeEventArgs):
-        """
-        ポジションが閉じられたときに発生します。
-        """
-        pict_dir = os.path.dirname(os.path.abspath(__file__)) + "report/"
-        pict_name = dir + "chart.png"
-        self.save_as_png(pict_dir + pict_name)
