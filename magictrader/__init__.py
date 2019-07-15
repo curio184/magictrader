@@ -1,5 +1,5 @@
 __copyright__ = 'Copyright (C) 2019 Yusuke Oya'
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 __license__ = 'MIT'
 __author__ = 'Yusuke Oya'
 __author_email__ = 'curio@antique-cafe.net'

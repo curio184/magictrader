@@ -26,7 +26,7 @@ class CandleOHLC(Base):
 class DBContext:
 
     def __init__(self, connection_str: str = "sqlite:///mt.sqlite"):
-        engine = create_engine(connection_str, echo=True)
+        engine = create_engine(connection_str, echo=False)
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
         self._session = Session()

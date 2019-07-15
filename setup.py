@@ -47,4 +47,8 @@ setup(
     extras_require={
         'ta-lib': ['TA-Lib']
     },
+    entry_points="""\
+      [console_scripts]
+      create_tradeterminal = magictrader.command:create_tradeterminal
+      """,
 )

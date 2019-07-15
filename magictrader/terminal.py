@@ -15,7 +15,7 @@ from magictrader.trade import Position, PositionRepository
 
 class TradeTerminal:
 
-    def __init__(self, currency_pair: str, period: str, trade_mode: str, datetime_from: datetime, datetime_to: datetime, ini_filename: str = "mt.ini"):
+    def __init__(self, currency_pair: str, period: str, trade_mode: str, datetime_from: datetime = None, datetime_to: datetime = None, ini_filename: str = "mt.ini"):
 
         # 取引の設定
         self._currency_pair = currency_pair
@@ -27,7 +27,7 @@ class TradeTerminal:
         # INIの設定
         ini_filepath = os.path.join(os.getcwd(), ini_filename)
         if not os.path.exists(ini_filename):
-            template_path = os.path.join(os.path.dirname(__file__), "config/mt.ini")
+            template_path = os.path.join(os.path.dirname(__file__), "template/mt.ini")
             shutil.copy(template_path, ini_filepath)
         self._inifile = INIFile(ini_filepath)
 
@@ -84,10 +84,54 @@ class TradeTerminal:
 
     @abstractmethod
     def _on_init(self, feeder: CandleFeeder, chart: Chart, window_main: ChartWindow, data_bag: dict):
+        """
+        on_initイベントでは、
+        トレードで使用するテクニカルインディケーターを作成したり、
+        チャートの画面構成を定義するための初期化処理を行います。
+
+        Parameters
+        ----------
+        feeder : CandleFeeder
+            ローソク足のデータを提供するフィーダーです。
+        chart : Chart
+            チャート画面本体です。
+        window_main : ChartWindow
+            チャートのメイン画面です。
+        data_bag : dict
+            on_tickイベントに受け渡したいデータを格納します。
+        """
         pass
 
     @abstractmethod
     def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository):
+        """
+        on_tickイベントは、ローソク足のデータが更新されるたびに呼び出されます。
+
+        Tips
+        ----------
+        ローソク足のデータ取得方法
+        ・時刻はcandle.times[n]で取得できます。
+        ・始値はcandle.opens[n]で取得できます。
+        ・高値はcandle.highs[n]で取得できます。
+        ・安値はcandle.lows[n]で取得できます。
+        ・終値はcandle.closes[n]で取得できます。
+        ※これらは時系列順のリストであり、nは0~199の数値を取ります。
+
+        テクニカルインディケーターのデータ取得方法
+        ・時刻はindicator.times[n]で取得できます。
+        ・価格はindicator.prices[n]で取得できます。
+        ※これらは時系列順のリストであり、nは0~199の数値を取ります。
+
+        Parameters
+        ----------
+        candle : Candle
+            ローソク足(OHLC)です。
+        data_bag : dict
+            on_initイベントから受け渡されたデータが格納されています。
+            また、次のon_tickイベントに受け渡したいデータを格納します。
+        position_repository : PositionRepository
+            ポジションを管理するためのリポジトリ
+        """
         pass
 
     def _position_opened(self, sender: object, eargs: EventArgs):
