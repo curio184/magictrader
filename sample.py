@@ -1,226 +1,62 @@
-import os
-from abc import ABCMeta, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart, ChartWindow
-from magictrader.const import (AppliedPrice, ModeBBANDS, ModeMACD,
-                               ModeTRADESIGNAL)
-from magictrader.event import EventArgs
-from magictrader.indicator import (ADX, BBANDS, MACD, RSI, SMA, STDDEV,
-                                   TRADESIGNAL, Indicator)
-from magictrader.messenger import SlackMessenger
+from magictrader.const import AppliedPrice, ModeBBANDS, ModeMACD
+from magictrader.indicator import ADX, BBANDS, MACD, RSI, SMA, STDDEV
+from magictrader.terminal import TradeTerminal
 from magictrader.trade import Position, PositionRepository
 
 
-class TradeTerminal:
+class MyTerminal(TradeTerminal):
 
-    def __init__(self, currency_pair: str, period: str, trade_mode: str, datetime_from: datetime, datetime_to: datetime):
-
-        # 取引の設定
-        self._currency_pair = currency_pair
-        self._period = period
-        self._trade_mode = trade_mode
-        self._datetime_from = datetime_from
-        self._datetime_to = datetime_to
-
-        # ローソク足のフィーダーを作成する
-        if self._trade_mode in ["practice", "forwardtest"]:
-            self._feeder = CandleFeeder(self._currency_pair, self._period, 200)
-        elif self._trade_mode == "backtest":
-            self._feeder = CandleFeeder(self._currency_pair, self._period, 200, True, self._datetime_from, self._datetime_to)
-
-        # 売買シグナルインディケーターを作成する
-        self._buy_open_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.BUY_OPEN)
-        self._buy_close_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.BUY_CLOSE)
-        self._sell_open_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.SELL_OPEN)
-        self._sell_close_signal = TRADESIGNAL(self._feeder, ModeTRADESIGNAL.SELL_CLOSE)
-
-        # チャートを作成する
-        self._chart = Chart()
-
-    def run(self):
-
-        # ローソク足を作成する
-        candle = Candle(self._feeder)
+    def _on_init(self, feeder: CandleFeeder, chart: Chart, window_main: ChartWindow, data_bag: dict):
 
         # テクニカルインディケーターを作成する
-        sma_fast = SMA(self._feeder, 21)
-        sma_slow = SMA(self._feeder, 89)
-        adx_fast = ADX(self._feeder, 13)
-        adx_slow = ADX(self._feeder, 26)
-        stddev = STDDEV(self._feeder, 20, 1)
+        sma_fast = SMA(feeder, 21)
+        sma_slow = SMA(feeder, 89)
+        adx_fast = ADX(feeder, 13)
+        adx_slow = ADX(feeder, 26)
+        stddev = STDDEV(feeder, 20, 1)
 
-        # チャート画面(メイン)を作成する
-        window_main = ChartWindow()
-        window_main.title = "btc_jpy"
-        window_main.height_ratio = 3
-        window_main.candle = candle                     # ローソク足を設定
-        window_main.indicators_left.append(self._buy_open_signal)
-        window_main.indicators_left.append(self._buy_close_signal)
-        window_main.indicators_left.append(self._sell_open_signal)
-        window_main.indicators_left.append(self._sell_close_signal)
-        window_main.indicators_left.append(sma_fast)    # 短期SMAを設定
-        window_main.indicators_left.append(sma_slow)    # 長期SMAを設定
+        # チャート(メイン画面)にインディケーターを登録する
+        window_main.indicators_left.append(sma_fast)      # 短期SMAを設定
+        window_main.indicators_left.append(sma_slow)      # 長期SMAを設定
 
-        # チャート画面(サブ)を作成する
+        # チャート(サブ画面)を作成し、インディケーターを登録する
         window_sub = ChartWindow()
         window_sub.height_ratio = 1
         window_sub.indicators_left.append(adx_fast)
         window_sub.indicators_left.append(adx_slow)
         window_sub.indicators_right.append(stddev)
 
-        # 画面を登録し、チャートを表示する
-        self._chart.add_window(window_main)
-        self._chart.add_window(window_sub)
-        self._chart.show()
+        # チャートにサブ画面を登録する
+        chart.add_window(window_sub)
 
-        # ポジションのリポジトリを作成する
-        position_repository = PositionRepository()
-        position_repository.position_opened_eventhandler.add(self._position_opened)
-        position_repository.position_closed_eventhandler.add(self._position_closed)
+        data_bag["sma_fast"] = sma_fast
+        data_bag["sma_slow"] = sma_slow
+        data_bag["adx_fast"] = adx_fast
+        data_bag["sma_fast"] = sma_fast
+        data_bag["adx_slow"] = adx_slow
+        data_bag["stddev"] = stddev
 
-        while True:
+    def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository):
 
-            if sma_fast.prices[-3] < sma_slow.prices[-3]  \
-                    and sma_fast.prices[-2] > sma_slow.prices[-2]:
+        sma_fast = data_bag["sma_fast"]
+        sma_slow = data_bag["sma_slow"]
+        adx_fast = data_bag["adx_fast"]
+        sma_fast = data_bag["sma_fast"]
+        adx_slow = data_bag["adx_slow"]
+        stddev = data_bag["stddev"]
 
-                position = position_repository.create_position()
-                position.open(candle.times[-1], "buy", candle.closes[-1], 1, "")
+        if sma_fast.prices[-3] < sma_slow.prices[-3]  \
+                and sma_fast.prices[-2] > sma_slow.prices[-2]:
 
-            self._feeder.go_next()
-            self._chart.refresh()
-
-    def _position_opened(self, sender: object, eargs: EventArgs):
-        """
-        ポジションが開かれたときに発生します。
-        """
-        position = eargs.params["position"]
-        position_repository = eargs.params["position_repository"]
-        self._send_position(position, position_repository)
-
-    def _position_closed(self, sender: object, eargs: EventArgs):
-        """
-        ポジションが閉じられたときに発生します。
-        """
-        position = eargs.params["position"]
-        position_repository = eargs.params["position_repository"]
-        self._send_position(position, position_repository)
-
-    def _send_position(self, position: Position, position_repository: PositionRepository):
-        """
-        ポジションを通知します。
-        """
-
-        # Slackの設定
-        slack_token = "xoxb-393836145330-617219938608-McvAHTnmtmZVw0sj888UOjT5"
-        slack_channel = "#general"
-        slack_username = "短期売買ボット(5m)"
-        slack = SlackMessenger(slack_token, slack_channel, slack_username)
-
-        # タイトル
-        detail_title = slack_username + " - ポジション{}：{}"
-        if position.close_action == "":
-            detail_title = detail_title.format(
-                "オープン", "買い" if position.open_action == "buy" else "売り"
-            )
-        else:
-            detail_title = detail_title.format(
-                "クローズ", "買い" if position.close_action == "buy" else "売り"
-            )
-
-        # 期間
-        detail_date = "期間　　：{} → {}"
-        if position.close_time:
-            if position.open_time.date == position.close_time.date:
-                detail_date = detail_date.format(
-                    "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
-                    "{0:%H:%M:%S}".format(position.close_time)
-                )
-            else:
-                detail_date = detail_date.format(
-                    "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
-                    "{0:%Y-%m-%d %H:%M:%S}".format(position.close_time)
-                )
-        else:
-            detail_date = detail_date.format(
-                "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
-                "未決済"
-            )
-
-        # 価格
-        detail_price = "{}：{} → {}"
-        if position.open_action == "buy":
-            detail_price = detail_price.format(
-                "ロング　",
-                "{:,.0f}".format(position.open_price),
-                "{:,.0f}".format(position.close_price) if position.close_price else "未決済"
-            )
-        else:
-            detail_price = detail_price.format(
-                "ショート",
-                "{:,.0f}".format(position.open_price),
-                "{:,.0f}".format(position.close_price) if position.close_price else "未決済"
-            )
-
-        # 損益
-        detail_pl = "損益　　：{}"
-        if position.close_time:
-            detail_pl = detail_pl.format(
-                "{:+,.0f}".format(position.profit)
-            )
-        else:
-            detail_pl = detail_pl.format(
-                "-"
-            )
-
-        # 注文理由
-        detail_open = "注文理由：{}"
-        detail_open = detail_open.format(
-            position.open_comment
-        )
-
-        # 決済理由
-        detail_close = "決済理由：{}"
-        if position.close_time:
-            detail_close = detail_close.format(
-                position.close_comment
-            )
-        else:
-            detail_close = detail_close.format(
-                "-"
-            )
-
-        # 累計損益
-        pl_total = int(position_repository.total_profit)
-        detail_pl_total = "累計損益：{}"
-        detail_pl_total = detail_pl_total.format(
-            "{:+,.0f}".format(pl_total)
-        )
-
-        # メッセージを組み立てる
-        message = ""
-        message += detail_title + "\n"
-        message += detail_date + "\n"
-        message += detail_price + "\n"
-        message += detail_pl + "\n"
-        message += detail_open + "\n"
-        message += detail_close + "\n"
-        message += "--------------------" + "\n"
-        message += detail_pl_total + "\n"
-
-        # チャートを画像として保存する
-        pict_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "report")
-        if not os.path.exists(pict_dir):
-            os.mkdir(pict_dir)
-        pict_path = os.path.join(pict_dir, "chart.png")
-        self._chart.save_as_png(pict_path)
-
-        # メッセージを送信する
-        slack.send_file(message, pict_path)
+            position = position_repository.create_position()
+            position.open(self._candle.times[-1], "buy", self._candle.closes[-1], 1, "")
 
 
 if __name__ == "__main__":
 
-    terminal = TradeTerminal("btc_jpy", "5m", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30))
+    terminal = MyTerminal("btc_jpy", "5m", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30))
     terminal.run()
