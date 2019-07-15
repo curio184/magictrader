@@ -53,7 +53,7 @@ class MyTerminal(TradeTerminal):
                 and sma_fast.prices[-2] > sma_slow.prices[-2]:
 
             position = position_repository.create_position()
-            position.open(self._candle.times[-1], "buy", self._candle.closes[-1], 1, "")
+            position.open(candle.times[-1], "buy", candle.closes[-1], 1, "")
 
 
 if __name__ == "__main__":
