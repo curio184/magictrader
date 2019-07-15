@@ -6,42 +6,30 @@ MagicTraderとは、zaif-exchangeでシステムトレードを行うための�
 各種テストでは、シグナルをチャートにプロットすることができるため、
 チャートを確認しならアルゴリズムを検証することができます。
 
-環境構築について (Windows編)
+セットアップ
 =============
 
-本プロジェクトを実行するために必要である
-Python3.5.2の仮想環境を構築する。
+### MagicTraderをインストールする
 
-### Pythonバージョンの確認
-
-```
-$ python -V
-Python 3.5.2
-```
-
-### Python仮想環境の作成
+pipコマンドを実行し、MagicTraderをインストールしてください。
 
 ```
-$ cd /d d:\
-$ cd d:\Source\MagicTrader\.venv
-$ python -m venv py352
-$ d:\Source\MagicTrader\.venv\py352\Scripts\activate
-$ python -V
-Python 3.5.2
+$ pip install magictrader
 ```
 
-### Pythonライブラリのインストール
+### TA-Libをインストールする
+
+MagicTraderは「TA-Lib」のインストールを別途必要とします。
+下記の紹介等を参考に、各々の環境に応じて、インストールしてください。
+
+python3でTA-Libをインストールする方法をまとめてみた
+https://qiita.com/ConnieWild/items/cb50f36425a683c914d2
 
 ```
-$ python -m pip install --upgrade pip
-$ python -m pip install pylint
-$ python -m pip install autopep8
-$ python -m pip install rope
-$ python -m pip install ptvsd
-$ python -m pip install D:\Source\MagicTrader\setup\TA_Lib-0.4.10-cp35-cp35m-win_amd64.whl
-$ python -m pip install matplotlib
-$ python -m pip install mpl_finance
-$ python -m pip install SQLAlchemy
-$ python -m pip install numpy
-$ python -m pip install zaifer
+$ pip install TA_Lib-0.4.17-cp35-cp35m-win_amd64.whl
 ```
+
+使い方
+=============
+
+(記載中)
