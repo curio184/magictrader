@@ -140,7 +140,7 @@ class CandleFeeder:
             if self._datetime_cursor < self._datetime_to:
 
                 # ローソク足の取得範囲を計算する
-                self._datetime_cursor += timedelta(minutes=5)
+                self._datetime_cursor += timedelta(minutes=Period.to_minutes(self._period))
                 range_from = self._datetime_cursor - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
                 range_to = self._datetime_cursor
 
