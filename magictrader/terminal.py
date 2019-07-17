@@ -66,10 +66,10 @@ class TradeTerminal:
         # ポジションのリポジトリを作成する
         self._position_repository = PositionRepository()
         if self._trade_mode == "practice":
-            self._position_repository.position_opening_eventhandler.add(self._position_opening)
-            self._position_repository.position_closing_eventhandler.add(self._position_closing)
-        self._position_repository.position_opened_eventhandler.add(self._position_opened)
-        self._position_repository.position_closed_eventhandler.add(self._position_closed)
+            self._position_repository.position_opening_eventhandler.add(self._position_repository_position_opening)
+            self._position_repository.position_closing_eventhandler.add(self._position_repository_position_closing)
+        self._position_repository.position_opened_eventhandler.add(self._position_repository_position_opened)
+        self._position_repository.position_closed_eventhandler.add(self._position_repository_position_closed)
 
     def run(self):
 
@@ -161,7 +161,7 @@ class TradeTerminal:
         """
         pass
 
-    def _on_opening_position(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
+    def _on_position_opening(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
         """
         ポジションを開くときに呼び出されます。
         ポジションをどのように開くかを実装します。
@@ -182,7 +182,7 @@ class TradeTerminal:
         """
         return True, position.open_price, position.order_amount
 
-    def _on_closing_position(self, position: Position, position_repository: PositionRepository) -> float:
+    def _on_position_closing(self, position: Position, position_repository: PositionRepository) -> float:
         """
         ポジションを閉じるときに呼び出されます。
         ポジションをどのように閉じるかを実装します。
@@ -201,58 +201,58 @@ class TradeTerminal:
         """
         return position.close_price
 
-    def _position_opening(self, sender: object, eargs: EventArgs):
+    def _position_repository_position_opening(self, sender: object, eargs: EventArgs):
         """
-        ポジションを開くときに発生します。
+        リポジトリでポジションを開くときに発生します。
         """
         position = eargs.params["position"]
         position_repository = eargs.params["position_repository"]
-        result, price, amount = self._on_opening_position(position, position_repository)
+        result, price, amount = self._on_position_opening(position, position_repository)
         eargs.params["result"] = result
         eargs.params["price"] = price
         eargs.params["amount"] = amount
 
-    def _position_closing(self, sender: object, eargs: EventArgs):
+    def _position_repository_position_closing(self, sender: object, eargs: EventArgs):
         """
-        ポジションを閉じるときに発生します。
+        リポジトリでポジションを閉じるときに発生します。
         """
         position = eargs.params["position"]
         position_repository = eargs.params["position_repository"]
-        price = self._on_closing_position(position, position_repository)
+        price = self._on_position_closing(position, position_repository)
         eargs.params["price"] = price
 
-    def _position_opened(self, sender: object, eargs: EventArgs):
+    def _position_repository_position_opened(self, sender: object, eargs: EventArgs):
         """
-        ポジションが開かれたときに発生します。
-        """
-        position = eargs.params["position"]
-        position_repository = eargs.params["position_repository"]
-        self._draw_position(position)
-        self._send_position(position, position_repository)
-
-    def _position_closed(self, sender: object, eargs: EventArgs):
-        """
-        ポジションが閉じられたときに発生します。
+        リポジトリでポジションが開かれたときに発生します。
         """
         position = eargs.params["position"]
         position_repository = eargs.params["position_repository"]
-        self._draw_position(position)
+        self._draw_new_position(position)
         self._send_position(position, position_repository)
 
-    def _draw_position(self, position: Position):
+    def _position_repository_position_closed(self, sender: object, eargs: EventArgs):
         """
-        ポジションを描画する
+        リポジトリでポジションが閉じられたときに発生します。
         """
-        if position.open_action == "buy":
-            if position.is_closed:
-                self._buy_close_signal.prices[-1] = position.close_price
+        position = eargs.params["position"]
+        position_repository = eargs.params["position_repository"]
+        self._draw_new_position(position)
+        self._send_position(position, position_repository)
+
+    def _draw_new_position(self, new_position: Position):
+        """
+        ポジションを描画します。
+        """
+        if new_position.open_action == "buy":
+            if new_position.is_closed:
+                self._buy_close_signal.prices[-1] = new_position.close_price
             else:
-                self._buy_open_signal.prices[-1] = position.open_price
+                self._buy_open_signal.prices[-1] = new_position.open_price
         else:
-            if position.is_closed:
-                self._sell_close_signal.prices[-1] = position.close_price
+            if new_position.is_closed:
+                self._sell_close_signal.prices[-1] = new_position.close_price
             else:
-                self._sell_open_signal.prices[-1] = position.open_price
+                self._sell_open_signal.prices[-1] = new_position.open_price
 
         self._chart.refresh()
 

@@ -108,11 +108,11 @@ class MyTradeTerminal(TradeTerminal):
                 and sma_fast.prices[-2] < sma_slow.prices[-2]:
 
             # 未決済のロングポジションを閉じる
-            long_positions = list(filter(lambda x: x.open_action == "buy" and x.is_closed == False, position_repository.positions))
+            long_positions = position_repository.get_open_positions("buy")
             for long_position in long_positions:
                 long_position.close(candle.times[-1], candle.closes[-1], "close: golden cross")
 
-    def _on_opening_position(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
+    def _on_position_opening(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
         """
         ポジションを開くときに呼び出されます。
         ポジションをどのように開くかを実装します。
@@ -133,7 +133,7 @@ class MyTradeTerminal(TradeTerminal):
         """
         return True, position.open_price, position.order_amount
 
-    def _on_closing_position(self, position: Position, position_repository: PositionRepository) -> float:
+    def _on_position_closing(self, position: Position, position_repository: PositionRepository) -> float:
         """
         ポジションを閉じるときに呼び出されます。
         ポジションをどのように閉じるかを実装します。

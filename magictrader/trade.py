@@ -200,6 +200,15 @@ class PositionRepository:
         self._positions.append(position)
         return position
 
+    def get_open_positions(self, open_action: str) -> List[Position]:
+        """
+        未決済建玉を取得します。
+        """
+        return list(filter(lambda x: x.is_opened == True
+                           and x.is_closed == False
+                           and x.is_canceled == False
+                           and x.open_action == open_action, self._positions))
+
     @property
     def positions(self) -> List[Position]:
         return self._positions
