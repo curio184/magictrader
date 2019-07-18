@@ -123,8 +123,8 @@ class MyTradeTerminal(TradeTerminal):
         stddev = STDDEV(feeder, 26, 1, "stddev")
 
         # ENVELOPE
-        dev_rate1 = 0.011
-        dev_rate2 = 0.015
+        dev_rate1 = 0.1
+        dev_rate2 = 0.13
         env_u2 = ENVELOPE(feeder, 26, dev_rate2, "env_u2")
         env_u2.style = {"linestyle": "dashdot", "color": "red", "linewidth": 0.5, "alpha": 1}
         env_u1 = ENVELOPE(feeder, 26, dev_rate1, "env_u1")
