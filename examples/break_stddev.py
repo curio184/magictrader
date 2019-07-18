@@ -4,8 +4,8 @@ from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart, ChartWindow
 from magictrader.const import ModeBBANDS, Period
 from magictrader.indicator import ADX, BBANDS, ENVELOPE, RSI, SMA, STDDEV
+from magictrader.position import Position, PositionRepository
 from magictrader.terminal import TradeTerminal
-from magictrader.trade import Position, PositionRepository
 
 
 class ScoreBoard:

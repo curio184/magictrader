@@ -3,8 +3,8 @@ from datetime import datetime
 from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart, ChartWindow
 from magictrader.indicator import RSI, SMA
+from magictrader.position import Position, PositionRepository
 from magictrader.terminal import TradeTerminal
-from magictrader.trade import Position, PositionRepository
 
 
 class MyTradeTerminal(TradeTerminal):

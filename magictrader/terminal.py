@@ -10,7 +10,7 @@ from magictrader.event import EventArgs
 from magictrader.indicator import TRADESIGNAL
 from magictrader.inifile import INIFile
 from magictrader.messenger import SlackMessenger
-from magictrader.trade import Position, PositionRepository
+from magictrader.position import Position, PositionRepository
 from magictrader.utils import TimeConverter
 
 

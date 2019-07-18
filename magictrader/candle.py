@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 from typing import List
 
 import numpy
-from sqlalchemy import asc
 from zaifer import Chart as ChartAPI
 
 from magictrader.const import AppliedPrice, Period
 from magictrader.event import EventArgs, EventHandler
 from magictrader.model import CandleOHLC, DBContext
 from magictrader.utils import TimeConverter
+from sqlalchemy import asc
 
 
 class CandleFeeder:
