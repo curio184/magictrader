@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
@@ -312,7 +313,7 @@ class Chart:
                 ax_right.set_ylim(min_price, max_price)
 
         plt.tight_layout()
-        plt.pause(0.1)
+        plt.pause(0.03)
 
     def refresh(self):
         """
@@ -407,7 +408,12 @@ class Chart:
                 ax_right.set_ylim(min_price, max_price)
 
         plt.tight_layout()
-        plt.pause(0.1)
+        plt.pause(0.03)
+
+    def wait(self, seconds: float):
+        datetime_from = datetime.now()
+        while datetime_from + timedelta(seconds=seconds) > datetime.now():
+            plt.pause(0.03)
 
     def close(self):
         pass

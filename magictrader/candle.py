@@ -52,7 +52,7 @@ class CandleFeeder:
             self._datetime_to = self._datetime_cursor
         self._db_context = DBContext()
         self._chart_api = ChartAPI()
-        self._server_request_span = 3.0
+        self._server_request_span = 1.0
         self._server_request_latest = None
         self._ohlcs = {}
         self._ohlc_updated_eventhandler = EventHandler(self)
@@ -282,7 +282,7 @@ class CandleFeeder:
 
         if self._server_request_latest:
             while self._server_request_latest + timedelta(seconds=self._server_request_span) > datetime.now():
-                time.sleep(1.0)
+                time.sleep(0.03)
         self._server_request_latest = datetime.now()
 
         response = self._chart_api.get_ohlc(self._currency_pair, Period.to_zaifapi_str(self._period), range_from, range_to)

@@ -104,6 +104,8 @@ class TradeTerminal:
 
             is_newbar = False
 
+            if self._trade_mode in ["practice", "forwardtest"]:
+                self._chart.wait(2.0)
             self._feeder.go_next()
             self._chart.refresh()
 
