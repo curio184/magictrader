@@ -279,5 +279,5 @@ class ENVELOPE(Indicator):
         self._times = self._feeder.get_times()
         prices = self._feeder.get_prices(self._period, self._applied_price)
         prices = talib.SMA(prices, self._period)
-        prices = prices * self._deviation
+        prices = prices + (prices * self._deviation)
         self._prices = prices[-self._feeder.bar_count:].tolist()
