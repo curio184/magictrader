@@ -237,10 +237,9 @@ class ADX(Indicator):
 
     def _load(self):
         self._times = self._feeder.get_times()
-        # NOTE:仮実装
-        highs = self._feeder.get_prices(25, AppliedPrice.HIGH)
-        lows = self._feeder.get_prices(25, AppliedPrice.LOW)
-        closes = self._feeder.get_prices(25, AppliedPrice.CLOSE)
+        highs = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.HIGH)
+        lows = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.LOW)
+        closes = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.CLOSE)
         prices = talib.ADX(high=highs, low=lows, close=closes, timeperiod=self._period)
         self._prices = prices[-self._feeder.bar_count:].tolist()
 
