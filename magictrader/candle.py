@@ -144,25 +144,8 @@ class CandleFeeder:
                 range_from = self._datetime_cursor - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
                 range_to = self._datetime_cursor
 
-                # ローカルDBからローソク足を取得する
-                ohlcs = self._get_ohlcs_from_local(range_from, range_to)
-
-                # ローカルDBでヒットしなかった場合
-                if len(ohlcs["times"]) < self._cache_bar_count:
-
-                    # サーバーからローソク足を取得する
-                    extra_range_from = range_from
-                    extra_range_to = range_to + timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
-                    ohlcs = self._get_ohlcs_from_server(extra_range_from, extra_range_to)
-
-                    # キャッシュにローソク足を保存する
-                    self._save_ohlcs_to_local(ohlcs)
-
-                    # キャッシュからローソク足を取得する
-                    ohlcs = self._get_ohlcs_from_local(range_from, range_to)
-
-                # ローソク足を設定する
-                self._ohlcs = ohlcs
+                # ローカルDB、もしくはサーバーからローソク足を取得する
+                self._ohlcs = self._get_ohlcs_from_local_or_server(self._currency_pair, self._period, range_from, range_to)
 
                 # ローソク足更新イベントを実行する
                 self._on_ohlc_updated(EventArgs())
@@ -183,19 +166,63 @@ class CandleFeeder:
             range_to = self._cursor_datetime
 
             # サーバーからローソク足を取得する
-            self._ohlcs = self._get_ohlcs_from_server(range_from, range_to)
+            self._ohlcs = self._get_ohlcs_from_server(self._currency_pair, self._period, range_from, range_to)
 
             # ローソク足更新イベントを実行する
             self._on_ohlc_updated(EventArgs())
 
             return True
 
-    def _get_ohlcs_from_local(self, range_from: datetime, range_to: datetime) -> dict:
+    def _get_ohlcs_from_local_or_server(self, currency_pair: str, period: str, range_from: datetime, range_to: datetime) -> dict:
+        """
+        ローカルDB、もしくはサーバーからローソク足を取得する
+
+        Parameters
+        ----------
+        currency_pair : str
+            通貨ペア("btc_jpy", etc.)
+        period : str
+            時間枠("1m", "5m", "15m", "30m", "1h", "4h", "8h", "12h", "1d", "1w")
+        range_from : datetime
+            取得開始日時
+        range_to : datetime
+            取得終了日時
+
+        Returns
+        -------
+        dict
+            ローソク足
+        """
+
+        # ローカルDBからローソク足を取得する
+        ohlcs = self._get_ohlcs_from_local(self._currency_pair, self._period, range_from, range_to)
+
+        # ローカルDBでヒットしなかった場合
+        if len(ohlcs["times"]) < self._cache_bar_count:
+
+            # サーバーからローソク足を取得する
+            extra_range_from = range_from
+            extra_range_to = range_to + timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
+            ohlcs = self._get_ohlcs_from_server(self._currency_pair, self._period, extra_range_from, extra_range_to)
+
+            # キャッシュにローソク足を保存する
+            self._save_ohlcs_to_local(self._currency_pair, self._period, ohlcs)
+
+            # キャッシュからローソク足を取得する
+            ohlcs = self._get_ohlcs_from_local(self._currency_pair, self._period, range_from, range_to)
+
+        return ohlcs
+
+    def _get_ohlcs_from_local(self, currency_pair: str, period: str, range_from: datetime, range_to: datetime) -> dict:
         """
         ローカルDBからローソク足を取得する
 
         Parameters
         ----------
+        currency_pair : str
+            通貨ペア("btc_jpy", etc.)
+        period : str
+            時間枠("1m", "5m", "15m", "30m", "1h", "4h", "8h", "12h", "1d", "1w")
         range_from : datetime
             取得開始日時
         range_to : datetime
@@ -208,8 +235,8 @@ class CandleFeeder:
         """
 
         records = self._db_context.session.query(CandleOHLC) \
-            .filter(CandleOHLC.currency_pair == self._currency_pair) \
-            .filter(CandleOHLC.period == self._period) \
+            .filter(CandleOHLC.currency_pair == currency_pair) \
+            .filter(CandleOHLC.period == period) \
             .filter(CandleOHLC.time >= range_from) \
             .filter(CandleOHLC.time <= range_to) \
             .order_by(asc(CandleOHLC.time)) \
@@ -223,12 +250,16 @@ class CandleFeeder:
             "closes": numpy.array(list(map(lambda x: float(str(x.close)), records))),
         }
 
-    def _save_ohlcs_to_local(self, ohlcs: dict):
+    def _save_ohlcs_to_local(self, currency_pair: str, period: str, ohlcs: dict):
         """
         ローカルDBにローソク足を保存する
 
         Parameters
         ----------
+        currency_pair : str
+            通貨ペア("btc_jpy", etc.)
+        period : str
+            時間枠("1m", "5m", "15m", "30m", "1h", "4h", "8h", "12h", "1d", "1w")
         ohlcs : dict
             ローソク足
         """
@@ -238,8 +269,8 @@ class CandleFeeder:
 
             # ローカルDBにUPSERTする
             record = self._db_context.session.query(CandleOHLC) \
-                .filter(CandleOHLC.currency_pair == self._currency_pair) \
-                .filter(CandleOHLC.period == self._period) \
+                .filter(CandleOHLC.currency_pair == currency_pair) \
+                .filter(CandleOHLC.period == period) \
                 .filter(CandleOHLC.time == item) \
                 .first()
 
@@ -250,8 +281,8 @@ class CandleFeeder:
                 record.close = ohlcs["closes"][idx]
             else:
                 record = CandleOHLC(
-                    currency_pair=self._currency_pair,
-                    period=self._period,
+                    currency_pair=currency_pair,
+                    period=period,
                     time=ohlcs["times"][idx],
                     open=ohlcs["opens"][idx],
                     high=ohlcs["highs"][idx],
@@ -263,12 +294,16 @@ class CandleFeeder:
         self._db_context.session.flush()
         self._db_context.session.commit()
 
-    def _get_ohlcs_from_server(self, range_from: datetime, range_to: datetime) -> dict:
+    def _get_ohlcs_from_server(self, currency_pair: str, period: str, range_from: datetime, range_to: datetime) -> dict:
         """
         サーバーからローソク足を取得する
 
         Parameters
         ----------
+        currency_pair : str
+            通貨ペア("btc_jpy", etc.)
+        period : str
+            時間枠("1m", "5m", "15m", "30m", "1h", "4h", "8h", "12h", "1d", "1w")
         range_from : datetime
             取得開始日時
         range_to : datetime
@@ -285,7 +320,7 @@ class CandleFeeder:
                 time.sleep(0.03)
         self._server_request_latest = datetime.now()
 
-        response = self._chart_api.get_ohlc(self._currency_pair, Period.to_zaifapi_str(self._period), range_from, range_to)
+        response = self._chart_api.get_ohlc(currency_pair, Period.to_zaifapi_str(period), range_from, range_to)
         return {
             "times": list(map(lambda x: TimeConverter.unixtime_to_datetime(int(x["time"]/1000)), response["ohlc_data"])),
             "opens": numpy.array(list(map(lambda x: x["open"], response["ohlc_data"]))),
