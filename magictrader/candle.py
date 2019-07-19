@@ -55,6 +55,7 @@ class CandleFeeder:
         self._server_request_span = 1.0
         self._server_request_latest = None
         self._ohlcs = {}
+        self._sequential_prices = []
         self._ohlc_updated_eventhandler = EventHandler(self)
         self.go_next()
 
@@ -137,24 +138,66 @@ class CandleFeeder:
         # バックテストモードの場合
         if self._backtest_mode:
 
-            if self._datetime_cursor < self._datetime_to:
+            if len(self._sequential_prices) == 0:
 
-                # ローソク足の取得範囲を計算する
-                self._datetime_cursor += timedelta(minutes=Period.to_minutes(self._period))
-                range_from = self._datetime_cursor - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
-                range_to = self._datetime_cursor
+                if self._datetime_cursor < self._datetime_to:
 
-                # ローカルDB、もしくはサーバーからローソク足を取得する
-                self._ohlcs = self._get_ohlcs_from_local_or_server(self._currency_pair, self._period, range_from, range_to)
+                    # ローソク足の取得範囲を計算する
+                    self._datetime_cursor += timedelta(minutes=Period.to_minutes(self._period))
+                    range_from = self._datetime_cursor - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
+                    range_to = self._datetime_cursor
 
-                # ローソク足更新イベントを実行する
-                self._on_ohlc_updated(EventArgs())
+                    # ローカルDB、もしくはサーバーからローソク足を取得する
+                    self._ohlcs = self._get_ohlcs_from_local_or_server(self._currency_pair, self._period, range_from, range_to)
 
-                return True
+                    # 詳細なローソク足を取得する
+                    detail_range_from = self._ohlcs["times"][-1]
+                    detail_range_to = self._ohlcs["times"][-1] + timedelta(minutes=Period.to_minutes(self._period)) - timedelta(minutes=1)
+                    detail_ohlcs = self._get_ohlcs_from_local_or_server(
+                        self._currency_pair, "15m", detail_range_from, detail_range_to
+                    )
+
+                    # 詳細なローソク足を連続する価格データに変換する
+                    for i, x in enumerate(detail_ohlcs["times"]):
+                        self._sequential_prices.append(detail_ohlcs["opens"][i])
+                        if detail_ohlcs["closes"][i] > detail_ohlcs["opens"][i]:
+                            self._sequential_prices.append(detail_ohlcs["lows"][i])
+                            self._sequential_prices.append(detail_ohlcs["highs"][i])
+                        else:
+                            self._sequential_prices.append(detail_ohlcs["highs"][i])
+                            self._sequential_prices.append(detail_ohlcs["lows"][i])
+                        self._sequential_prices.append(detail_ohlcs["closes"][i])
+                    self._sequential_prices[0] = self._ohlcs["opens"][-1]
+                    self._sequential_prices[self._sequential_prices.index(max(self._sequential_prices))] = self._ohlcs["highs"][-1]
+                    self._sequential_prices[self._sequential_prices.index(min(self._sequential_prices))] = self._ohlcs["lows"][-1]
+                    self._sequential_prices[-1] = self._ohlcs["closes"][-1]
+
+                    self._ohlcs["opens"][-1] = self._sequential_prices[0]
+                    self._ohlcs["highs"][-1] = self._sequential_prices[0]
+                    self._ohlcs["lows"][-1] = self._sequential_prices[0]
+                    self._ohlcs["closes"][-1] = self._sequential_prices[0]
+                    self._sequential_prices.pop(0)
+
+                    # ローソク足更新イベントを実行する
+                    self._on_ohlc_updated(EventArgs())
+
+                    return True
+
+                else:
+
+                    return False
 
             else:
 
-                return False
+                if self._sequential_prices[0] > self._ohlcs["highs"][-1]:
+                    self._ohlcs["highs"][-1] = self._sequential_prices[0]
+                if self._sequential_prices[0] < self._ohlcs["lows"][-1]:
+                    self._ohlcs["lows"][-1] = self._sequential_prices[0]
+                self._ohlcs["closes"][-1] = self._sequential_prices[0]
+                self._sequential_prices.pop(0)
+
+                # ローソク足更新イベントを実行する
+                self._on_ohlc_updated(EventArgs())
 
         # リアルタイムモードの場合
         else:
@@ -195,21 +238,21 @@ class CandleFeeder:
         """
 
         # ローカルDBからローソク足を取得する
-        ohlcs = self._get_ohlcs_from_local(self._currency_pair, self._period, range_from, range_to)
+        ohlcs = self._get_ohlcs_from_local(currency_pair, period, range_from, range_to)
 
         # ローカルDBでヒットしなかった場合
         if len(ohlcs["times"]) < self._cache_bar_count:
 
             # サーバーからローソク足を取得する
             extra_range_from = range_from
-            extra_range_to = range_to + timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
-            ohlcs = self._get_ohlcs_from_server(self._currency_pair, self._period, extra_range_from, extra_range_to)
+            extra_range_to = range_to + timedelta(minutes=Period.to_minutes(period) * (self._cache_bar_count - 1))
+            ohlcs = self._get_ohlcs_from_server(currency_pair, period, extra_range_from, extra_range_to)
 
             # キャッシュにローソク足を保存する
-            self._save_ohlcs_to_local(self._currency_pair, self._period, ohlcs)
+            self._save_ohlcs_to_local(currency_pair, period, ohlcs)
 
             # キャッシュからローソク足を取得する
-            ohlcs = self._get_ohlcs_from_local(self._currency_pair, self._period, range_from, range_to)
+            ohlcs = self._get_ohlcs_from_local(currency_pair, period, range_from, range_to)
 
         return ohlcs
 
