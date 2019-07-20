@@ -138,6 +138,7 @@ class CandleFeeder:
         # バックテストモードの場合
         if self._backtest_mode:
 
+            # ティックデータが存在しない場合
             if len(self._sequential_prices) == 0:
 
                 if self._datetime_cursor < self._datetime_to:
@@ -150,14 +151,14 @@ class CandleFeeder:
                     # ローカルDB、もしくはサーバーからローソク足を取得する
                     self._ohlcs = self._get_ohlcs_from_local_or_server(self._currency_pair, self._period, range_from, range_to)
 
-                    # 詳細なローソク足を取得する
+                    # より下位のローソク足を取得する
                     detail_range_from = self._ohlcs["times"][-1]
                     detail_range_to = self._ohlcs["times"][-1] + timedelta(minutes=Period.to_minutes(self._period)) - timedelta(minutes=1)
                     detail_ohlcs = self._get_ohlcs_from_local_or_server(
                         self._currency_pair, "15m", detail_range_from, detail_range_to
                     )
 
-                    # 詳細なローソク足を連続する価格データに変換する
+                    # より下位のローソク足をティックデータに変換する
                     for i, x in enumerate(detail_ohlcs["times"]):
                         self._sequential_prices.append(detail_ohlcs["opens"][i])
                         if detail_ohlcs["closes"][i] > detail_ohlcs["opens"][i]:
@@ -172,6 +173,7 @@ class CandleFeeder:
                     self._sequential_prices[self._sequential_prices.index(min(self._sequential_prices))] = self._ohlcs["lows"][-1]
                     self._sequential_prices[-1] = self._ohlcs["closes"][-1]
 
+                    # ティックデータで最新のローソク足の価格を更新する
                     self._ohlcs["opens"][-1] = self._sequential_prices[0]
                     self._ohlcs["highs"][-1] = self._sequential_prices[0]
                     self._ohlcs["lows"][-1] = self._sequential_prices[0]
@@ -187,8 +189,10 @@ class CandleFeeder:
 
                     return False
 
+            # ティックデータが存在する場合
             else:
 
+                # ティックデータで最新のローソク足の価格を更新する
                 if self._sequential_prices[0] > self._ohlcs["highs"][-1]:
                     self._ohlcs["highs"][-1] = self._sequential_prices[0]
                 if self._sequential_prices[0] < self._ohlcs["lows"][-1]:
