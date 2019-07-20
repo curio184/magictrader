@@ -80,6 +80,35 @@ class Period(Enum):
             return "W"
 
     @staticmethod
+    def zoom_period(period: str, zoom_level: int) -> str:
+
+        periods = [
+            {"index": 0, "name": "1m"},
+            {"index": 1, "name": "5m"},
+            {"index": 2, "name": "15m"},
+            {"index": 3, "name": "30m"},
+            {"index": 4, "name": "1h"},
+            {"index": 5, "name": "4h"},
+            {"index": 6, "name": "8h"},
+            {"index": 7, "name": "12h"},
+            {"index": 8, "name": "1d"},
+            {"index": 9, "name": "1w"},
+        ]
+
+        current_period = list(filter(lambda x: x["name"] == period, periods))[0]
+
+        zoomed_index = current_period["index"] - zoom_level
+
+        if zoomed_index < 0:
+            zoomed_index = 0
+        if zoomed_index > 9:
+            zoomed_index = 9
+
+        zoomed_period = list(filter(lambda x: x["index"] == zoomed_index, periods))[0]
+
+        return zoomed_period["name"]
+
+    @staticmethod
     def floor_datetime(dt: datetime, period: str) -> datetime:
 
         if period == "1m":

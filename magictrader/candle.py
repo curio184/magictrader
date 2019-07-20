@@ -155,7 +155,7 @@ class CandleFeeder:
                     detail_range_from = self._ohlcs["times"][-1]
                     detail_range_to = self._ohlcs["times"][-1] + timedelta(minutes=Period.to_minutes(self._period)) - timedelta(minutes=1)
                     detail_ohlcs = self._get_ohlcs_from_local_or_server(
-                        self._currency_pair, "15m", detail_range_from, detail_range_to
+                        self._currency_pair, Period.zoom_period(self._period, 4), detail_range_from, detail_range_to
                     )
 
                     # より下位のローソク足をティックデータに変換する
