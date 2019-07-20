@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from enum import Enum
 
 
@@ -77,6 +78,48 @@ class Period(Enum):
             return "D"
         elif period == "1w":
             return "W"
+
+    @staticmethod
+    def floor_datetime(dt: datetime, period: str) -> datetime:
+
+        if period == "1m":
+            return datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute)
+        elif period == "5m":
+            return datetime(dt.year, dt.month, dt.day, dt.hour, int(dt.minute / 5) * 5)
+        elif period == "15m":
+            return datetime(dt.year, dt.month, dt.day, dt.hour, int(dt.minute / 15) * 15)
+        elif period == "30m":
+            return datetime(dt.year, dt.month, dt.day, dt.hour, int(dt.minute / 30) * 30)
+        elif period == "1h":
+            return datetime(dt.year, dt.month, dt.day, dt.hour)
+        elif period == "4h":
+            return datetime(dt.year, dt.month, dt.day, int(dt.hour / 4) * 4)
+        elif period == "8h":
+            return datetime(dt.year, dt.month, dt.day, int(dt.hour / 8) * 8)
+        elif period == "12h":
+            return datetime(dt.year, dt.month, dt.day, int(dt.hour / 12) * 12)
+        elif period == "1d":
+            return datetime(dt.year, dt.month, dt.day)
+        elif period == "1w":
+            # 週足にも関わらず日毎に足が存在する不可解な問題があるため後回し
+            return datetime(dt.year, dt.month, dt.day)
+
+    @staticmethod
+    def ceil_datetime(dt: datetime, period: str) -> datetime:
+
+        if dt == Period.floor_datetime(dt, period):
+            return dt
+        else:
+            return Period.floor_datetime(dt + timedelta(minutes=Period.to_minutes(period)), period)
+
+    @staticmethod
+    def get_bar_count(dt_from: datetime, dt_to: datetime, period: str) -> int:
+
+        dt_from = Period.ceil_datetime(dt_from, period)
+        dt_to = Period.floor_datetime(dt_to, period)
+        minutes = ((dt_to - dt_from).days * 1440) + ((dt_to - dt_from).seconds / 60)
+        bar_count = int((minutes / Period.to_minutes(period))) + 1
+        return bar_count
 
 
 class AppliedPrice(Enum):

@@ -244,8 +244,11 @@ class CandleFeeder:
         # ローカルDBからローソク足を取得する
         ohlcs = self._get_ohlcs_from_local(currency_pair, period, range_from, range_to)
 
+        # 取得期間にあるべき足の数を取得する
+        expected_bar_count = Period.get_bar_count(range_from, range_to, period)
+
         # ローカルDBでヒットしなかった場合
-        if len(ohlcs["times"]) < self._cache_bar_count:
+        if len(ohlcs["times"]) < expected_bar_count:
 
             # サーバーからローソク足を取得する
             extra_range_from = range_from
