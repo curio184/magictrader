@@ -273,7 +273,7 @@ class TradeTerminal:
 
         # タイトル
         detail_title = slack_username + " - ポジション{}：{}"
-        if position.is_closed:
+        if not position.is_closed:
             detail_title = detail_title.format(
                 "オープン", "買い" if position.open_action == "buy" else "売り"
             )
