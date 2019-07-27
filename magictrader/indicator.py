@@ -5,8 +5,7 @@ from typing import List
 import talib
 
 from magictrader.candle import CandleFeeder
-from magictrader.const import (AppliedPrice, ModeBAND, ModeBBANDS,
-                               ModeMACD, ModeTRADESIGNAL)
+from magictrader.const import AppliedPrice, ModeBAND, ModeMACD, ModeTRADESIGNAL
 from magictrader.event import EventArgs
 
 
@@ -155,11 +154,11 @@ class BBANDS(Indicator):
     ボリンジャーバンドを表します。
     """
 
-    def __init__(self, feeder: CandleFeeder, period: int, deviation: int, mode_bbands: ModeBBANDS,
+    def __init__(self, feeder: CandleFeeder, period: int, deviation: int, mode_bbands: ModeBAND,
                  label: str = "bbands", applied_price: AppliedPrice = AppliedPrice.CLOSE):
         self._period = period
         self._deviation = deviation
-        self._mode_bbands = mode_bbands
+        self._mode_band = mode_bbands
         self._applied_price = applied_price
         super().__init__(feeder, label)
 
@@ -170,11 +169,11 @@ class BBANDS(Indicator):
         self._times = self._feeder.get_times()
         prices = self._feeder.get_prices(self._period, self._applied_price)
         prices = talib.BBANDS(prices, timeperiod=self._period, nbdevup=self._deviation, nbdevdn=self._deviation, matype=0)
-        if self._mode_bbands == ModeBBANDS.UPPER:
+        if self._mode_band == ModeBAND.UPPER:
             self._prices = prices[0][-self._feeder.bar_count:].tolist()
-        elif self._mode_bbands == ModeBBANDS.MIDDLE:
+        elif self._mode_band == ModeBAND.MIDDLE:
             self._prices = prices[1][-self._feeder.bar_count:].tolist()
-        elif self._mode_bbands == ModeBBANDS.LOWER:
+        elif self._mode_band == ModeBAND.LOWER:
             self._prices = prices[2][-self._feeder.bar_count:].tolist()
 
 
@@ -313,7 +312,7 @@ class ATRBAND(Indicator):
         super().__init__(feeder, label)
 
     def _apply_default_style(self):
-        self.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 0.5}
+        self.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 0.1}
 
     def _load(self):
         self._times = self._feeder.get_times()

@@ -171,9 +171,9 @@ class ModeTRADESIGNAL(Enum):
     SELL_CLOSE = 3
 
 
-class ModeBBANDS(Enum):
+class ModeBAND(Enum):
     """
-    ボリンジャーバンドのラインの種類
+    BANDのラインの種類
     """
     UPPER = 0
     MIDDLE = 1
@@ -187,12 +187,3 @@ class ModeMACD(Enum):
     FAST = 0
     SLOW = 1
     SIGNAL = 2
-
-
-class ModeBAND(Enum):
-    """
-    BANDのラインの種類
-    """
-    UPPER = 0
-    MIDDLE = 1
-    LOWER = 2

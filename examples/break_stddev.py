@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart, ChartWindow
-from magictrader.const import ModeBBANDS, Period
+from magictrader.const import ModeBAND, Period
 from magictrader.indicator import ADX, BBANDS, ENVELOPE, RSI, SMA, STDDEV
 from magictrader.position import Position, PositionRepository
 from magictrader.terminal import TradeTerminal
@@ -105,13 +105,13 @@ class MyTradeTerminal(TradeTerminal):
         sma_slow = SMA(feeder, 89, "sma_slow")
 
         # BBANDS
-        bb_p3 = BBANDS(feeder, 21, 3, ModeBBANDS.UPPER, "bb_p3")
-        bb_p2 = BBANDS(feeder, 21, 2, ModeBBANDS.UPPER, "bb_p2")
-        bb_p1 = BBANDS(feeder, 21, 1, ModeBBANDS.UPPER, "bb_p1")
-        bb_md = BBANDS(feeder, 21, 1, ModeBBANDS.MIDDLE, "bb_midle")
-        bb_m1 = BBANDS(feeder, 21, 1, ModeBBANDS.LOWER, "bb_m1")
-        bb_m2 = BBANDS(feeder, 21, 2, ModeBBANDS.LOWER, "bb_m2")
-        bb_m3 = BBANDS(feeder, 21, 3, ModeBBANDS.LOWER, "bb_m3")
+        bb_p3 = BBANDS(feeder, 21, 3, ModeBAND.UPPER, "bb_p3")
+        bb_p2 = BBANDS(feeder, 21, 2, ModeBAND.UPPER, "bb_p2")
+        bb_p1 = BBANDS(feeder, 21, 1, ModeBAND.UPPER, "bb_p1")
+        bb_md = BBANDS(feeder, 21, 1, ModeBAND.MIDDLE, "bb_midle")
+        bb_m1 = BBANDS(feeder, 21, 1, ModeBAND.LOWER, "bb_m1")
+        bb_m2 = BBANDS(feeder, 21, 2, ModeBAND.LOWER, "bb_m2")
+        bb_m3 = BBANDS(feeder, 21, 3, ModeBAND.LOWER, "bb_m3")
 
         # ADX
         adx_fast = ADX(feeder, 13, "adx_fast")
