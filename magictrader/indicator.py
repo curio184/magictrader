@@ -5,8 +5,8 @@ from typing import List
 import talib
 
 from magictrader.candle import CandleFeeder
-from magictrader.const import (AppliedPrice, ModeBBANDS, ModeMACD,
-                               ModeTRADESIGNAL)
+from magictrader.const import (AppliedPrice, ModeBAND, ModeBBANDS,
+                               ModeMACD, ModeTRADESIGNAL)
 from magictrader.event import EventArgs
 
 
@@ -266,7 +266,6 @@ class ENVELOPE(Indicator):
     """
     エンベロープを表します。
     """
-    # NOTE:仮実装
 
     def __init__(self, feeder: CandleFeeder, period: int, deviation: float,
                  label: str = "envelope", applied_price: AppliedPrice = AppliedPrice.CLOSE):
@@ -281,3 +280,57 @@ class ENVELOPE(Indicator):
         prices = talib.SMA(prices, self._period)
         prices = prices + (prices * self._deviation)
         self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
+class ATR(Indicator):
+    """
+    ATR(Average True Range)を表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, period: int, label: str = "atr"):
+        self._period = period
+        super().__init__(feeder, label)
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        highs = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.HIGH)
+        lows = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.LOW)
+        closes = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.CLOSE)
+        prices = talib.ATR(highs, lows, closes, self._period)
+        self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
+class ATRBAND(Indicator):
+    """
+    ATRBAND(Average True Range Band)を表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, period: int, deviation: float, mode_band: ModeBAND,
+                 label: str = "atr_band"):
+        self._period = period
+        self._deviation = deviation
+        self._mode_band = mode_band
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        self.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 0.5}
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        # SMA
+        closes = self._feeder.get_prices(self._period, AppliedPrice.CLOSE)
+        prices_sma = talib.SMA(closes, self._period)
+        prices_sma = prices_sma[-self._feeder.bar_count:]
+        # ATR
+        highs = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.HIGH)
+        lows = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.LOW)
+        closes = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.CLOSE)
+        prices_atr = talib.ATR(highs, lows, closes, self._period)
+        prices_atr = prices_atr[-self._feeder.bar_count:] * self._deviation
+        # BAND
+        if self._mode_band == ModeBAND.UPPER:
+            self._prices = (prices_sma + prices_atr).tolist()
+        elif self._mode_band == ModeBAND.MIDDLE:
+            self._prices = prices_sma.tolist()
+        elif self._mode_band == ModeBAND.LOWER:
+            self._prices = (prices_sma - prices_atr).tolist()
