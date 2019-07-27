@@ -16,7 +16,25 @@ from magictrader.utils import TimeConverter
 
 class TradeTerminal:
 
-    def __init__(self, currency_pair: str, period: str, trade_mode: str, datetime_from: datetime = None, datetime_to: datetime = None, ini_filename: str = "mt.ini"):
+    def __init__(self, currency_pair: str, period: str, trade_mode: str, datetime_from: datetime = None, datetime_to: datetime = None, terminal_name: str = "mt"):
+        """
+        Parameters
+        ----------
+        currency_pair : str
+            通貨ペア("btc_jpy", etc.)
+        period : str
+            時間枠("1m", "5m", "15m", "30m", "1h", "4h", "8h", "12h", "1d", "1w")
+        trade_mode : str
+            ターミナルの実行モードを指定します。
+            実践モード("practice")、フォワードテスト("forwardtest")、バックテスト("backtest")のいずれかを指定します。
+            バックテストを指定した場合、開始期間(datetime_from)・終了期間(datetime_to)を合わせて指定します。
+        datetime_from : datetime, optional
+            バックテストの開始日時, by default None
+        datetime_to : datetime, optional
+            バックテストの終了日時, by default None
+        terminal_name : str, optional
+            ターミナルの識別名, by default "mt"
+        """
 
         # 取引の設定
         self._currency_pair = currency_pair
@@ -24,10 +42,11 @@ class TradeTerminal:
         self._trade_mode = trade_mode
         self._datetime_from = datetime_from
         self._datetime_to = datetime_to
+        self._terminal_name = terminal_name
 
         # INIの設定
-        ini_filepath = os.path.join(os.getcwd(), ini_filename)
-        if not os.path.exists(ini_filename):
+        ini_filepath = os.path.join(os.getcwd(), "{}.ini".format(terminal_name))
+        if not os.path.exists(ini_filepath):
             template_path = os.path.join(os.path.dirname(__file__), "template/mt.ini")
             shutil.copy(template_path, ini_filepath)
         self._inifile = INIFile(ini_filepath)
@@ -65,6 +84,7 @@ class TradeTerminal:
 
         # ポジションのリポジトリを作成する
         self._position_repository = PositionRepository()
+        self._position_repository.load_from_json("{}.json".format(self._terminal_name))
         if self._trade_mode == "practice":
             self._position_repository.position_opening_eventhandler.add(self._position_repository_position_opening)
             self._position_repository.position_closing_eventhandler.add(self._position_repository_position_closing)
@@ -80,6 +100,7 @@ class TradeTerminal:
 
         # チャートを表示する
         self._chart.show()
+        self._draw_position(self._position_repository)
 
         is_newbar = False
         evaluated_til = datetime(1900, 1, 1)
@@ -229,7 +250,8 @@ class TradeTerminal:
         """
         position = eargs.params["position"]
         position_repository = eargs.params["position_repository"]
-        self._draw_new_position(position)
+        position_repository.save_as_json("{}.json".format(self._terminal_name))
+        self._draw_position(position_repository)
         self._send_position(position, position_repository)
 
     def _position_repository_position_closed(self, sender: object, eargs: EventArgs):
@@ -238,23 +260,33 @@ class TradeTerminal:
         """
         position = eargs.params["position"]
         position_repository = eargs.params["position_repository"]
-        self._draw_new_position(position)
+        position_repository.save_as_json("{}.json".format(self._terminal_name))
+        self._draw_position(position_repository)
         self._send_position(position, position_repository)
 
-    def _draw_new_position(self, new_position: Position):
+    def _draw_position(self, position_repository: PositionRepository):
         """
         ポジションを描画します。
         """
-        if new_position.open_action == "buy":
-            if new_position.is_closed:
-                self._buy_close_signal.prices[-1] = new_position.close_price
+        for position in position_repository.positions:
+            if position.open_action == "buy":
+                if position.is_opened:
+                    if position.open_time in self._buy_open_signal.times:
+                        idx = self._buy_open_signal.times.index(position.open_time)
+                        self._buy_open_signal.prices[idx] = position.open_price
+                if position.is_closed:
+                    if position.close_time in self._buy_close_signal.times:
+                        idx = self._buy_close_signal.times.index(position.close_time)
+                        self._buy_close_signal.prices[idx] = position.close_price
             else:
-                self._buy_open_signal.prices[-1] = new_position.open_price
-        else:
-            if new_position.is_closed:
-                self._sell_close_signal.prices[-1] = new_position.close_price
-            else:
-                self._sell_open_signal.prices[-1] = new_position.open_price
+                if position.is_opened:
+                    if position.open_time in self._sell_open_signal.times:
+                        idx = self._sell_open_signal.times.index(position.open_time)
+                        self._sell_open_signal.prices[idx] = position.open_price
+                if position.is_closed:
+                    if position.close_time in self._sell_close_signal.times:
+                        idx = self._sell_close_signal.times.index(position.close_time)
+                        self._sell_close_signal.prices[idx] = position.close_price
 
         self._chart.refresh()
 

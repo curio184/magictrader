@@ -1,3 +1,6 @@
+import codecs
+import json
+import os
 from datetime import datetime
 from typing import List
 
@@ -61,6 +64,42 @@ class Position:
         self._on_closing(closing_eargs)
         self._close_price = closing_eargs.params["price"]
         self._on_closed(EventArgs({"position": self}))
+
+    def to_dict(self) -> dict:
+        """
+        ポジションをdictに変換します。
+        """
+        data = {
+            "is_opened": self._is_opened,
+            "is_closed": self._is_closed,
+            "is_canceled": self._is_canceled,
+            "open_time": self._open_time.strftime("%Y-%m-%d %H:%M:%S") if self._open_time else None,
+            "open_action": self._open_action,
+            "open_price": self._open_price,
+            "open_comment": self._open_comment,
+            "close_time": self._close_time.strftime("%Y-%m-%d %H:%M:%S") if self._close_time else None,
+            "close_price": self._close_price,
+            "close_comment": self._close_comment,
+            "order_amount": self._order_amount,
+            "profit": self.profit,
+        }
+        return data
+
+    def load_from_dict(self, data: dict):
+        """
+        dictからポジションを読み込みます。
+        """
+        self._is_opened = bool(data["is_opened"])
+        self._is_closed = bool(data["is_closed"])
+        self._is_canceled = bool(data["is_canceled"])
+        self._open_time = datetime.strptime(data["open_time"], "%Y-%m-%d %H:%M:%S") if data["open_time"] else None
+        self._open_action = str(data["open_action"])
+        self._open_price = float(data["open_price"]) if data["open_price"] else None
+        self._open_comment = str(data["open_comment"])
+        self._close_time = datetime.strptime(data["close_time"], "%Y-%m-%d %H:%M:%S") if data["close_time"] else None
+        self._close_price = float(data["close_price"]) if data["close_price"] else None
+        self._close_comment = str(data["close_comment"])
+        self._order_amount = float(data["order_amount"])
 
     @property
     def is_opened(self) -> bool:
@@ -272,3 +311,31 @@ class PositionRepository:
         ポジションクローズイベントのハンドラ
         """
         return self._position_closed_eventhandler
+
+    def save_as_json(self, json_path: str):
+        """
+        ポジションをJSONに出力します。
+        """
+
+        records = []
+        for position in self.positions:
+            records.append(position.to_dict())
+
+        with codecs.open(json_path, "w", "utf8") as f:
+            json.dump(records, f, ensure_ascii=False)
+
+    def load_from_json(self, json_path: str):
+        """
+        JSONからポジションを読み込みます。
+        """
+
+        if not os.path.exists(json_path):
+            return
+
+        records = None
+        with codecs.open(json_path, "r", "utf8") as f:
+            records = json.load(f)
+
+        for record in records:
+            position = self.create_position()
+            position.load_from_dict(record)
