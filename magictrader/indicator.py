@@ -227,7 +227,7 @@ class MACD(Indicator):
 
 class ADX(Indicator):
     """
-    ADXを表します。
+    ADX(修正移動平均)を表します。
     """
 
     def __init__(self, feeder: CandleFeeder, period: int, label: str = "adx"):
