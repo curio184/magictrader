@@ -1,4 +1,3 @@
-import re
 from datetime import datetime, timedelta
 
 from magictrader.candle import Candle, CandleFeeder
@@ -184,10 +183,10 @@ class MyTradeTerminal(TradeTerminal):
                     and score.signal_adx_bull == 0 \
                     and score.signal_stddev_peakout > 0 \
                     and score.signal_adx_peakout > 0:
-                stoploss = candle.closes[-1] + int((candle.closes[-1] - sma.prices[-1]) * risk_reward_ratio)
+                stop_price = candle.closes[-1] + int((candle.closes[-1] - sma.prices[-1]) * risk_reward_ratio)
                 # ポジション
                 short_position = position_repository.create_position()
-                short_position.open(candle.times[-1], "sell", candle.closes[-1], 1, "ATR逆張り(stoploss:{})".format(stoploss))
+                short_position.open(candle.times[-1], "sell", candle.closes[-1], 1, "ATR逆張り", stop_price=stop_price)
 
         # エントリー：ATR逆張り
         if not long_position:
@@ -197,14 +196,14 @@ class MyTradeTerminal(TradeTerminal):
                     and score.signal_adx_bull == 0 \
                     and score.signal_stddev_peakout > 0 \
                     and score.signal_adx_peakout > 0:
-                stoploss = candle.closes[-1] - int((sma.prices[-1] - candle.closes[-1]) * risk_reward_ratio)
+                stop_price = candle.closes[-1] - int((sma.prices[-1] - candle.closes[-1]) * risk_reward_ratio)
                 # ポジション
                 long_position = position_repository.create_position()
-                long_position.open(candle.times[-1], "buy", candle.closes[-1], 1,  "ATR逆張り(stoploss:{})".format(stoploss))
+                long_position.open(candle.times[-1], "buy", candle.closes[-1], 1,  "ATR逆張り", stop_price=stop_price)
 
         # イグジット：ATR逆張り
         if long_position \
-                and long_position.open_comment.find("ATR逆張り") >= 0:
+                and long_position.open_comment == "ATR逆張り":
 
             # 利確：SMAタッチ
             if not long_position.is_closed:
@@ -214,8 +213,7 @@ class MyTradeTerminal(TradeTerminal):
 
             # 損切：許容損失超過
             if not long_position.is_closed:
-                m = re.search(r'(^.*\(stoploss:)(.*?)(\)$)', long_position.open_comment)
-                if candle.closes[-1] <= float(m.group(2)):
+                if candle.closes[-1] <= long_position.stop_price and long_position.hold_period >= 0:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "許容損失超過")
                     # ペナルティスコア
@@ -223,7 +221,7 @@ class MyTradeTerminal(TradeTerminal):
 
         # イグジット：ATR逆張り
         if short_position \
-                and short_position.open_comment.find("ATR逆張り") >= 0:
+                and short_position.open_comment == "ATR逆張り":
 
             # 利確：SMAタッチ
             if not short_position.is_closed:
@@ -233,8 +231,7 @@ class MyTradeTerminal(TradeTerminal):
 
             # 損切：許容損失超過
             if not short_position.is_closed:
-                m = re.search(r'(^.*\(stoploss:)(.*?)(\)$)', short_position.open_comment)
-                if candle.closes[-1] >= float(m.group(2)):
+                if candle.closes[-1] >= short_position.stop_price and short_position.hold_period >= 0:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "許容損失超過")
                     # ペナルティスコア
