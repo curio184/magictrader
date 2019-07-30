@@ -84,8 +84,8 @@ class TradeTerminal:
 
         # ポジションのリポジトリを作成する
         self._position_repository = PositionRepository()
-        self._position_repository.load_from_json("{}.json".format(self._terminal_name))
         if self._trade_mode == "practice":
+            self._position_repository.load_from_json("{}.json".format(self._terminal_name))
             self._position_repository.position_opening_eventhandler.add(self._position_repository_position_opening)
             self._position_repository.position_closing_eventhandler.add(self._position_repository_position_closing)
         self._position_repository.position_opened_eventhandler.add(self._position_repository_position_opened)
