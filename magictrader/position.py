@@ -34,8 +34,8 @@ class Position:
         self._close_price = None
         self._close_comment = ""
         self._order_amount = None
-        self._stop_price = None
         self._limit_price = None
+        self._stop_price = None
         self._exec_open_price = None
         self._exec_close_price = None
         self._exec_order_amount = None
@@ -44,7 +44,8 @@ class Position:
         self._position_opened_eventhandler = EventHandler(self)
         self._position_closed_eventhandler = EventHandler(self)
 
-    def open(self, dt: datetime, action: str, price: float, amount: float, comment: str = ""):
+    def open(self, dt: datetime, action: str, price: float, amount: float, comment: str = "",
+             limit_price: float = None, stop_price: float = None):
         """
         ポジションを開きます。
         """
@@ -53,6 +54,8 @@ class Position:
         self._open_price = price
         self._order_amount = amount
         self._open_comment = comment
+        self._limit_price = limit_price
+        self._stop_price = stop_price
         opening_eargs = EventArgs(
             {"position": self, "exec_price": self._open_price, "exec_amount": self._order_amount, "cancel": False}
         )
@@ -200,9 +203,35 @@ class Position:
     def limit_price(self) -> float:
         return self._limit_price
 
+    @limit_price.setter
+    def limit_price(self, value):
+        """
+        リミット価格を設定します。
+
+        Parameters
+        ----------
+        value : float or None
+            リミット価格を設定する場合は数値を、
+            リミット価格を解除する場合はNoneを指定します。
+        """
+        self._limit_price = value
+
     @property
     def stop_price(self) -> float:
         return self._stop_price
+
+    @stop_price.setter
+    def stop_price(self, value):
+        """
+        ストップ価格を設定します。
+
+        Parameters
+        ----------
+        value : float or None
+            ストップ価格を設定する場合は数値を、
+            ストップ価格を解除する場合はNoneを指定します。
+        """
+        self._stop_price = value
 
     @property
     def exec_open_price(self) -> float:
