@@ -1,9 +1,11 @@
 import codecs
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
+from magictrader.candle import CandleFeeder
+from magictrader.const import Period
 from magictrader.event import EventArgs, EventHandler
 
 
@@ -12,10 +14,18 @@ class Position:
     ポジションを表します。
     """
 
-    def __init__(self):
+    def __init__(self, feeder: CandleFeeder):
+        """
+        Parameters
+        ----------
+        feeder : CandleFeeder
+            ローソク足のデータを提供するフィーダーです。
+        """
+        self._feeder = feeder
         self._is_opened = False
         self._is_closed = False
         self._is_canceled = False
+        self._currency_pair = self._feeder.currency_pair
         self._open_time = None
         self._open_action = ""
         self._open_price = None
@@ -24,6 +34,8 @@ class Position:
         self._close_price = None
         self._close_comment = ""
         self._order_amount = None
+        self._stop_price = None
+        self._limit_price = None
         self._exec_open_price = None
         self._exec_close_price = None
         self._exec_order_amount = None
@@ -76,6 +88,7 @@ class Position:
             "is_opened": self._is_opened,
             "is_closed": self._is_closed,
             "is_canceled": self._is_canceled,
+            "currency_pair": self._currency_pair,
             "open_time": self._open_time.strftime("%Y-%m-%d %H:%M:%S") if self._open_time else None,
             "open_action": self._open_action,
             "open_price": self._open_price,
@@ -84,6 +97,8 @@ class Position:
             "close_price": self._close_price,
             "close_comment": self._close_comment,
             "order_amount": self._order_amount,
+            "limit_price": self._limit_price,
+            "stop_price": self._stop_price,
             "exec_open_price": self._exec_open_price,
             "exec_close_price": self._exec_close_price,
             "exec_order_amount": self._exec_order_amount,
@@ -98,6 +113,7 @@ class Position:
         self._is_opened = bool(data["is_opened"])
         self._is_closed = bool(data["is_closed"])
         self._is_canceled = bool(data["is_canceled"])
+        self._currency_pair = str(data["currency_pair"])
         if data["open_time"] is not None:
             self._open_time = datetime.strptime(data["open_time"], "%Y-%m-%d %H:%M:%S")
         self._open_action = str(data["open_action"])
@@ -111,6 +127,10 @@ class Position:
         self._close_comment = str(data["close_comment"])
         if data["order_amount"] is not None:
             self._order_amount = float(data["order_amount"])
+        if data["limit_price"] is not None:
+            self._limit_price = float(data["limit_price"])
+        if data["stop_price"] is not None:
+            self._stop_price = float(data["stop_price"])
         if data["exec_open_price"] is not None:
             self._exec_open_price = float(data["exec_open_price"])
         if data["exec_close_price"] is not None:
@@ -129,6 +149,10 @@ class Position:
     @property
     def is_canceled(self) -> bool:
         return self._is_canceled
+
+    @property
+    def currency_pair(self) -> str:
+        return self._currency_pair
 
     @property
     def open_time(self) -> datetime:
@@ -173,6 +197,26 @@ class Position:
         return self._order_amount
 
     @property
+    def limit_price(self) -> float:
+        return self._limit_price
+
+    @property
+    def stop_price(self) -> float:
+        return self._stop_price
+
+    @property
+    def exec_open_price(self) -> float:
+        return self._exec_open_price
+
+    @property
+    def exec_close_price(self) -> float:
+        return self._exec_close_price
+
+    @property
+    def exec_order_amount(self) -> float:
+        return self._exec_order_amount
+
+    @property
     def profit(self) -> float:
         if self._is_opened and self._is_closed:
             if self._open_action == "buy":
@@ -181,6 +225,22 @@ class Position:
                 return self._exec_open_price - self._exec_close_price
         else:
             return 0.0
+
+    @property
+    def hold_period(self) -> int:
+        """
+        ポジションの保有期間を取得します。
+        """
+        if self._is_opened:
+            hold_period = 0
+            datetime_cursor = self._open_time
+            datetime_to = self._close_time if self._is_closed else self._feeder.datetime_cursor
+            while datetime_cursor < datetime_to:
+                hold_period += 1
+                datetime_cursor += timedelta(minutes=Period.to_minutes(self._feeder.period))
+            return hold_period
+        else:
+            return 0
 
     def _on_opening(self, eargs: EventArgs):
         """
@@ -240,7 +300,14 @@ class PositionRepository:
     ポジションのリポジトリを表します。
     """
 
-    def __init__(self):
+    def __init__(self, feeder: CandleFeeder):
+        """
+        Parameters
+        ----------
+        feeder : CandleFeeder
+            ローソク足のデータを提供するフィーダーです。
+        """
+        self._feeder = feeder
         self._positions = []
         self._position_opening_eventhandler = EventHandler(self)
         self._position_closing_eventhandler = EventHandler(self)
@@ -248,7 +315,7 @@ class PositionRepository:
         self._position_closed_eventhandler = EventHandler(self)
 
     def create_position(self):
-        position = Position()
+        position = Position(self._feeder)
         position.position_opening_eventhandler.add(self._on_position_opening)   # イベントをリレーする
         position.position_closing_eventhandler.add(self._on_position_closing)   # イベントをリレーする
         position.position_opened_eventhandler.add(self._on_position_opened)     # イベントをリレーする

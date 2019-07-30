@@ -83,7 +83,7 @@ class TradeTerminal:
         self._chart.add_window(self._window_main)
 
         # ポジションのリポジトリを作成する
-        self._position_repository = PositionRepository()
+        self._position_repository = PositionRepository(self._feeder)
         if self._trade_mode == "practice":
             self._position_repository.load_from_json("{}.json".format(self._terminal_name))
             self._position_repository.position_opening_eventhandler.add(self._position_repository_position_opening)

@@ -206,13 +206,9 @@ class MyTradeTerminal(TradeTerminal):
         if long_position \
                 and long_position.open_comment.find("ATR逆張り") >= 0:
 
-            long_position_hold_period = self._get_position_hold_period(
-                long_position.open_time, candle.times[-1]
-            )
-
             # 利確：SMAタッチ
             if not long_position.is_closed:
-                if candle.closes[-1] >= sma.prices[-1] and long_position_hold_period >= 0:
+                if candle.closes[-1] >= sma.prices[-1] and long_position.hold_period >= 0:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "SMAタッチ")
 
@@ -229,13 +225,9 @@ class MyTradeTerminal(TradeTerminal):
         if short_position \
                 and short_position.open_comment.find("ATR逆張り") >= 0:
 
-            short_position_hold_period = self._get_position_hold_period(
-                short_position.open_time, candle.times[-1]
-            )
-
             # 利確：SMAタッチ
             if not short_position.is_closed:
-                if candle.closes[-1] <= sma.prices[-1] and short_position_hold_period >= 0:
+                if candle.closes[-1] <= sma.prices[-1] and short_position.hold_period >= 0:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "SMAタッチ")
 
@@ -292,17 +284,6 @@ class MyTradeTerminal(TradeTerminal):
             実際の約定価格を返します。
         """
         return position.close_price
-
-    def _get_position_hold_period(self, open_time: datetime, close_time: datetime) -> int:
-        """
-        ポジションの保有期間を取得する
-        """
-        hold_period = 0
-        datetime_cursor = open_time
-        while datetime_cursor < close_time:
-            hold_period += 1
-            datetime_cursor += timedelta(minutes=Period.to_minutes(self._period))
-        return hold_period
 
 
 if __name__ == "__main__":

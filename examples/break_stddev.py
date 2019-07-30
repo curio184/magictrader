@@ -417,21 +417,17 @@ class MyTradeTerminal(TradeTerminal):
         if long_position \
                 and long_position.open_comment == "標準偏差順張り":
 
-            long_position_hold_period = self._get_position_hold_period(
-                long_position.open_time, candle.times[-1]
-            )
-
             # 利確：BB+1σ下抜け
-            if not long_position.is_closed and long_position_hold_period >= 4:
+            if not long_position.is_closed and long_position.hold_period >= 4:
                 if candle.closes[-2] < bb_p1.prices[-2]:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "+1σ下抜け")
                     # ペナルティスコア
-                    if long_position_hold_period <= 10:
-                        score.penalty_long_on_follow_stddev = 10 - long_position_hold_period
+                    if long_position.hold_period <= 10:
+                        score.penalty_long_on_follow_stddev = 10 - long_position.hold_period
 
             # 利確：標準偏差ピークアウト
-            if not long_position.is_closed and long_position_hold_period >= 1:
+            if not long_position.is_closed and long_position.hold_period >= 1:
                 if score.signal_atrb_break <= score.signal_stddev_peakout \
                         and score.signal_atrb_break <= score.signal_adx_peakout \
                         and score.signal_atrb_break > 0 \
@@ -440,11 +436,11 @@ class MyTradeTerminal(TradeTerminal):
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
                     # ペナルティスコア
-                    if long_position_hold_period <= 10:
-                        score.penalty_long_on_follow_stddev = 10 - long_position_hold_period
+                    if long_position.hold_period <= 10:
+                        score.penalty_long_on_follow_stddev = 10 - long_position.hold_period
 
             # 損切り：中期SMAタッチ
-            if not long_position.is_closed and long_position_hold_period >= 1:
+            if not long_position.is_closed and long_position.hold_period >= 1:
                 if candle.closes[-1] < sma_middle.prices[-1]:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "sma_middleタッチ")
@@ -453,18 +449,14 @@ class MyTradeTerminal(TradeTerminal):
         if long_position \
                 and long_position.open_comment == "エンベロープ逆張り":
 
-            long_position_hold_period = self._get_position_hold_period(
-                long_position.open_time, candle.times[-1]
-            )
-
             # 利確：中期ENVELOPEタッチ
-            if not long_position.is_closed and long_position_hold_period >= 1:
+            if not long_position.is_closed and long_position.hold_period >= 1:
                 if candle.highs[-1] > env_md.prices[-1]:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "env_mdタッチ")
 
             # 損切り：建値割込み
-            if not long_position.is_closed and long_position_hold_period >= 4:
+            if not long_position.is_closed and long_position.hold_period >= 4:
                 if candle.lows[-1] < long_position.open_price:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "同値撤退")
@@ -472,7 +464,7 @@ class MyTradeTerminal(TradeTerminal):
                     score.penalty_long_on_contrary_env = 30
 
             # 損切り：マイナス乖離2タッチ
-            if not long_position.is_closed and long_position_hold_period >= 0:
+            if not long_position.is_closed and long_position.hold_period >= 0:
                 if candle.lows[-1] < env_l2.prices[-1]:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "マイナス乖離2タッチ")
@@ -535,21 +527,17 @@ class MyTradeTerminal(TradeTerminal):
         if short_position \
                 and short_position.open_comment == "標準偏差順張り":
 
-            short_position_hold_period = self._get_position_hold_period(
-                short_position.open_time, candle.times[-1]
-            )
-
             # 利確：BBAND -1σ上抜け
-            if not short_position.is_closed and short_position_hold_period >= 4:
+            if not short_position.is_closed and short_position.hold_period >= 4:
                 if candle.closes[-2] > bb_m1.prices[-2]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "-1σ上抜け")
                     # ペナルティスコア
-                    if short_position_hold_period <= 10:
-                        score.penalty_short_on_follow_stddev = 10 - short_position_hold_period
+                    if short_position.hold_period <= 10:
+                        score.penalty_short_on_follow_stddev = 10 - short_position.hold_period
 
             # 利確：標準偏差ピークアウト
-            if not short_position.is_closed and short_position_hold_period >= 1:
+            if not short_position.is_closed and short_position.hold_period >= 1:
                 if score.signal_atrb_break <= score.signal_stddev_peakout \
                         and score.signal_atrb_break <= score.signal_adx_peakout \
                         and score.signal_atrb_break > 0 \
@@ -558,17 +546,17 @@ class MyTradeTerminal(TradeTerminal):
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
                     # ペナルティスコア
-                    if short_position_hold_period <= 10:
-                        score.penalty_short_on_follow_stddev = 10 - short_position_hold_period
+                    if short_position.hold_period <= 10:
+                        score.penalty_short_on_follow_stddev = 10 - short_position.hold_period
 
             # 利確：BBAND -3σタッチ
-            if not short_position.is_closed and short_position_hold_period >= 4:
+            if not short_position.is_closed and short_position.hold_period >= 4:
                 if candle.closes[-1] < bb_m3.prices[-1]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "-3σタッチ")
 
             # 損切り：SMA 中期タッチ
-            if not short_position.is_closed and short_position_hold_period >= 1:
+            if not short_position.is_closed and short_position.hold_period >= 1:
                 if candle.closes[-1] > sma_middle.prices[-1]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "sma_middleタッチ")
@@ -577,27 +565,23 @@ class MyTradeTerminal(TradeTerminal):
         if short_position \
                 and short_position.open_comment == "調整局面のデッドクロス":
 
-            short_position_hold_period = self._get_position_hold_period(
-                short_position.open_time, candle.times[-1]
-            )
-
             # 利確：BBAND -1σ上抜け
-            if not short_position.is_closed and short_position_hold_period >= 1:
+            if not short_position.is_closed and short_position.hold_period >= 1:
                 if candle.closes[-2] > bb_m1.prices[-2]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "-1σ上抜け")
                     # ペナルティスコア
-                    if short_position_hold_period <= 10:
-                        score.penalty_short_on_follow_stddev = 10 - short_position_hold_period
+                    if short_position.hold_period <= 10:
+                        score.penalty_short_on_follow_stddev = 10 - short_position.hold_period
 
             # 利確：BBAND -3σタッチ
-            if not short_position.is_closed and short_position_hold_period >= 1:
+            if not short_position.is_closed and short_position.hold_period >= 1:
                 if candle.closes[-1] < bb_m3.prices[-1]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "-3σタッチ")
 
             # 損切り：SMA 中期タッチ
-            if not short_position.is_closed and short_position_hold_period >= 1:
+            if not short_position.is_closed and short_position.hold_period >= 1:
                 if candle.closes[-1] > sma_middle.prices[-1]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "sma_middleタッチ")
@@ -606,18 +590,14 @@ class MyTradeTerminal(TradeTerminal):
         if short_position \
                 and short_position.open_comment == "エンベロープ逆張り":
 
-            short_position_hold_period = self._get_position_hold_period(
-                short_position.open_time, candle.times[-1]
-            )
-
             # 利確：ENVELOPE 中期タッチ
-            if not short_position.is_closed and short_position_hold_period >= 1:
+            if not short_position.is_closed and short_position.hold_period >= 1:
                 if candle.lows[-1] < env_md.prices[-1]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "env_mdタッチ")
 
             # 損切り：建値割込み
-            if not short_position.is_closed and short_position_hold_period >= 4:
+            if not short_position.is_closed and short_position.hold_period >= 4:
                 if candle.highs[-1] > short_position.open_price:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "同値撤退")
@@ -625,7 +605,7 @@ class MyTradeTerminal(TradeTerminal):
                     score.penalty_short_on_contrary_env = 30
 
             # 損切り：ENVELOPE プラス乖離2タッチ
-            if not short_position.is_closed and short_position_hold_period >= 0:
+            if not short_position.is_closed and short_position.hold_period >= 0:
                 if candle.highs[-1] > env_u2.prices[-1]:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "プラス乖離2タッチ")
@@ -676,17 +656,6 @@ class MyTradeTerminal(TradeTerminal):
             実際の約定価格を返します。
         """
         return position.close_price
-
-    def _get_position_hold_period(self, open_time: datetime, close_time: datetime) -> int:
-        """
-        ポジションの保有期間を取得する
-        """
-        hold_period = 0
-        datetime_cursor = open_time
-        while datetime_cursor < close_time:
-            hold_period += 1
-            datetime_cursor += timedelta(minutes=Period.to_minutes(self._period))
-        return hold_period
 
 
 if __name__ == "__main__":
