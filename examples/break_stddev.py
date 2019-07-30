@@ -129,9 +129,9 @@ class MyTradeTerminal(TradeTerminal):
         bb_m3 = BBANDS(feeder, 21, 3, ModeBAND.LOWER, "bb_m3")
 
         # ADX
-        adx_fast = ADX(feeder, 13, "adx_fast")
+        adx_fast = ADX(feeder, 8, "adx_fast")
         adx_fast.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
-        adx_slow = ADX(feeder, 26, "adx_slow")
+        adx_slow = ADX(feeder, 14, "adx_slow")
         adx_slow.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
 
         # STDDEV
@@ -636,7 +636,7 @@ class MyTradeTerminal(TradeTerminal):
         if is_newbar:
             score.decay()
 
-    def _on_opening_position(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
+    def _on_opening_position(self, position: Position, position_repository: PositionRepository) -> (float, float, bool):
         """
         ポジションを開くときに呼び出されます。
         ポジションをどのように開くかを実装します。
@@ -650,12 +650,13 @@ class MyTradeTerminal(TradeTerminal):
 
         Returns
         -------
-        (bool, float, float)
-            1: ポジションを一部でも開くことに成功した場合Trueを返します。
-            2: 実際の約定価格を返します。
-            3: 実際の約定数量を返します。
+        (float, float, bool)
+            1: 実際の約定価格を返します。
+            2: 実際の約定数量を返します。
+            3: ポジションを一部でも開くことに成功した場合はFalse、
+               すべてキャンセルした場合はTrueを返します。
         """
-        return True, position.open_price, position.order_amount
+        return position.open_price, position.order_amount, False
 
     def _on_closing_position(self, position: Position, position_repository: PositionRepository) -> float:
         """

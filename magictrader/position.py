@@ -24,6 +24,9 @@ class Position:
         self._close_price = None
         self._close_comment = ""
         self._order_amount = 0.0
+        self._exec_open_price = None
+        self._exec_close_price = None
+        self._exec_order_amount = 0.0
         self._position_opening_eventhandler = EventHandler(self)
         self._position_closing_eventhandler = EventHandler(self)
         self._position_opened_eventhandler = EventHandler(self)
@@ -39,14 +42,14 @@ class Position:
         self._order_amount = amount
         self._open_comment = comment
         opening_eargs = EventArgs(
-            {"position": self, "result": True, "price": self._open_price, "amount": self._order_amount}
+            {"position": self, "exec_price": self._open_price, "exec_amount": self._order_amount, "cancel": False}
         )
         self._on_opening(opening_eargs)
-        if not opening_eargs.params["result"]:
+        if opening_eargs.params["cancel"]:
             self._is_canceled = True
             return
-        self._open_price = opening_eargs.params["price"]
-        self._order_amount = opening_eargs.params["amount"]
+        self._exec_open_price = opening_eargs.params["exec_price"]
+        self._exec_order_amount = opening_eargs.params["exec_amount"]
         self._is_opened = True
         self._on_opened(EventArgs({"position": self}))
 
@@ -59,10 +62,10 @@ class Position:
         self._close_price = price
         self._close_comment = comment
         closing_eargs = EventArgs(
-            {"position": self, "price": self._close_price}
+            {"position": self, "exec_price": self._close_price}
         )
         self._on_closing(closing_eargs)
-        self._close_price = closing_eargs.params["price"]
+        self._exec_close_price = closing_eargs.params["exec_price"]
         self._on_closed(EventArgs({"position": self}))
 
     def to_dict(self) -> dict:
@@ -81,6 +84,9 @@ class Position:
             "close_price": self._close_price,
             "close_comment": self._close_comment,
             "order_amount": self._order_amount,
+            "exec_open_price": self._exec_open_price,
+            "exec_close_price": self._exec_close_price,
+            "exec_order_amount": self._exec_order_amount,
             "profit": self.profit,
         }
         return data
@@ -100,6 +106,9 @@ class Position:
         self._close_price = float(data["close_price"]) if data["close_price"] else None
         self._close_comment = str(data["close_comment"])
         self._order_amount = float(data["order_amount"])
+        self._exec_open_price = float(data["exec_open_price"])
+        self._exec_close_price = float(data["exec_close_price"])
+        self._exec_order_amount = float(data["exec_order_amount"])
 
     @property
     def is_opened(self) -> bool:
@@ -141,7 +150,7 @@ class Position:
             else:
                 return "buy"
         else:
-            return ""
+            return "error"
 
     @property
     def close_price(self) -> float:
@@ -159,9 +168,9 @@ class Position:
     def profit(self) -> float:
         if self._is_opened and self._is_closed:
             if self._open_action == "buy":
-                return self._close_price - self._open_price
+                return self._exec_close_price - self._exec_open_price
             else:
-                return self._open_price - self._close_price
+                return self._exec_open_price - self._exec_close_price
         else:
             return 0.0
 

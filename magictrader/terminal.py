@@ -184,7 +184,7 @@ class TradeTerminal:
         """
         pass
 
-    def _on_position_opening(self, position: Position, position_repository: PositionRepository) -> (bool, float, float):
+    def _on_position_opening(self, position: Position, position_repository: PositionRepository) -> (float, float, bool):
         """
         ポジションを開くときに呼び出されます。
         ポジションをどのように開くかを実装します。
@@ -198,12 +198,13 @@ class TradeTerminal:
 
         Returns
         -------
-        (bool, float, float)
-            1: ポジションを一部でも開くことに成功した場合Trueを返します。
-            2: 実際の約定価格を返します。
-            3: 実際の約定数量を返します。
+        (float, float, bool)
+            1: 実際の約定価格を返します。
+            2: 実際の約定数量を返します。
+            3: ポジションを一部でも開くことに成功した場合はTrue、
+               すべてキャンセルした場合はFalseを返します。
         """
-        return True, position.open_price, position.order_amount
+        return position.open_price, position.order_amount, True
 
     def _on_position_closing(self, position: Position, position_repository: PositionRepository) -> float:
         """
@@ -230,10 +231,10 @@ class TradeTerminal:
         """
         position = eargs.params["position"]
         position_repository = eargs.params["position_repository"]
-        result, price, amount = self._on_position_opening(position, position_repository)
-        eargs.params["result"] = result
-        eargs.params["price"] = price
-        eargs.params["amount"] = amount
+        exec_price, exec_amount, cancel = self._on_position_opening(position, position_repository)
+        eargs.params["exec_price"] = exec_price
+        eargs.params["exec_amount"] = exec_amount
+        eargs.params["cancel"] = cancel
 
     def _position_repository_position_closing(self, sender: object, eargs: EventArgs):
         """
@@ -241,8 +242,8 @@ class TradeTerminal:
         """
         position = eargs.params["position"]
         position_repository = eargs.params["position_repository"]
-        price = self._on_position_closing(position, position_repository)
-        eargs.params["price"] = price
+        exec_price = self._on_position_closing(position, position_repository)
+        eargs.params["exec_price"] = exec_price
 
     def _position_repository_position_opened(self, sender: object, eargs: EventArgs):
         """

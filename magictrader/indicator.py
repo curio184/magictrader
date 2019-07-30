@@ -234,6 +234,16 @@ class ADX(Indicator):
         self._period = period
         super().__init__(feeder, label)
 
+    def _apply_default_style(self):
+        if 1 <= self._period <= 12:
+            self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+        elif 13 <= self._period <= 74:
+            self.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+        elif 75 <= self._period <= 200:
+            self.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+        else:
+            super()._apply_default_style()
+
     def _load(self):
         self._times = self._feeder.get_times()
         highs = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.HIGH)
@@ -273,6 +283,9 @@ class ENVELOPE(Indicator):
         self._applied_price = applied_price
         super().__init__(feeder, label)
 
+    def _apply_default_style(self):
+        self.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
+
     def _load(self):
         self._times = self._feeder.get_times()
         prices = self._feeder.get_prices(self._period, self._applied_price)
@@ -289,6 +302,16 @@ class ATR(Indicator):
     def __init__(self, feeder: CandleFeeder, period: int, label: str = "atr"):
         self._period = period
         super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        if 1 <= self._period <= 12:
+            self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+        elif 13 <= self._period <= 74:
+            self.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+        elif 75 <= self._period <= 200:
+            self.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+        else:
+            super()._apply_default_style()
 
     def _load(self):
         self._times = self._feeder.get_times()
@@ -312,7 +335,7 @@ class ATRBAND(Indicator):
         super().__init__(feeder, label)
 
     def _apply_default_style(self):
-        self.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 0.1}
+        self.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
 
     def _load(self):
         self._times = self._feeder.get_times()
