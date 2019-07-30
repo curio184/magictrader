@@ -23,10 +23,10 @@ class Position:
         self._close_time = None
         self._close_price = None
         self._close_comment = ""
-        self._order_amount = 0.0
+        self._order_amount = None
         self._exec_open_price = None
         self._exec_close_price = None
-        self._exec_order_amount = 0.0
+        self._exec_order_amount = None
         self._position_opening_eventhandler = EventHandler(self)
         self._position_closing_eventhandler = EventHandler(self)
         self._position_opened_eventhandler = EventHandler(self)
@@ -98,17 +98,25 @@ class Position:
         self._is_opened = bool(data["is_opened"])
         self._is_closed = bool(data["is_closed"])
         self._is_canceled = bool(data["is_canceled"])
-        self._open_time = datetime.strptime(data["open_time"], "%Y-%m-%d %H:%M:%S") if data["open_time"] else None
+        if data["open_time"] is not None:
+            self._open_time = datetime.strptime(data["open_time"], "%Y-%m-%d %H:%M:%S")
         self._open_action = str(data["open_action"])
-        self._open_price = float(data["open_price"]) if data["open_price"] else None
+        if data["open_price"] is not None:
+            self._open_price = float(data["open_price"])
         self._open_comment = str(data["open_comment"])
-        self._close_time = datetime.strptime(data["close_time"], "%Y-%m-%d %H:%M:%S") if data["close_time"] else None
-        self._close_price = float(data["close_price"]) if data["close_price"] else None
+        if data["close_time"] is not None:
+            self._close_time = datetime.strptime(data["close_time"], "%Y-%m-%d %H:%M:%S")
+        if data["close_price"] is not None:
+            self._close_price = float(data["close_price"])
         self._close_comment = str(data["close_comment"])
-        self._order_amount = float(data["order_amount"])
-        self._exec_open_price = float(data["exec_open_price"])
-        self._exec_close_price = float(data["exec_close_price"])
-        self._exec_order_amount = float(data["exec_order_amount"])
+        if data["order_amount"] is not None:
+            self._order_amount = float(data["order_amount"])
+        if data["exec_open_price"] is not None:
+            self._exec_open_price = float(data["exec_open_price"])
+        if data["exec_close_price"] is not None:
+            self._exec_close_price = float(data["exec_close_price"])
+        if data["exec_order_amount"] is not None:
+            self._exec_order_amount = float(data["exec_order_amount"])
 
     @property
     def is_opened(self) -> bool:
