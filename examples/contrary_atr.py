@@ -291,8 +291,8 @@ if __name__ == "__main__":
     # 実践モードで実行します
     # mytrade = MyTradeTerminal("btc_jpy", "1h", "practice", terminal_name="contrary_atr")
     # フォワードテストモードで実行します
-    # mytrade = MyTradeTerminal("btc_jpy", "5m", "forwardtest", terminal_name="contrary_atr")
+    # mytrade = MyTradeTerminal("btc_jpy", "1h", "forwardtest", terminal_name="contrary_atr")
     # バックテストモードで実行します
-    mytrade = MyTradeTerminal("btc_jpy", "1h", "backtest", datetime(2019, 7, 18), datetime(2019, 7, 28), terminal_name="contrary_atr")
+    mytrade = MyTradeTerminal("btc_jpy", "1h", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30), terminal_name="contrary_atr")
 
     mytrade.run()

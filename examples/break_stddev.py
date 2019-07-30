@@ -661,9 +661,9 @@ class MyTradeTerminal(TradeTerminal):
 if __name__ == "__main__":
 
     # 実践モードで実行します
-    # mytrade = MyTradeTerminal("btc_jpy", "5m", "practice", terminal_name="break_stddev")
+    # mytrade = MyTradeTerminal("btc_jpy", "4h", "practice", terminal_name="break_stddev")
     # フォワードテストモードで実行します
-    # mytrade = MyTradeTerminal("btc_jpy", "5m", "forwardtest", terminal_name="break_stddev")
+    # mytrade = MyTradeTerminal("btc_jpy", "4h", "forwardtest", terminal_name="break_stddev")
     # バックテストモードで実行します
     mytrade = MyTradeTerminal("btc_jpy", "4h", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30), terminal_name="break_stddev")
 
