@@ -149,6 +149,129 @@ class SMA(Indicator):
         self._prices = prices[-self._feeder.bar_count:].tolist()
 
 
+class EMA(Indicator):
+    """
+    指数平滑移動平均を表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, period: int, label: str = "ema",
+                 applied_price: AppliedPrice = AppliedPrice.CLOSE):
+        self._period = period
+        self._applied_price = applied_price
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        if 1 <= self._period <= 12:
+            self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+        elif 13 <= self._period <= 74:
+            self.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+        elif 75 <= self._period <= 200:
+            self.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+        else:
+            super()._apply_default_style()
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        prices = self._feeder.get_prices(self._period, self._applied_price)
+        prices = talib.EMA(prices, self._period)
+        self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
+class WMA(Indicator):
+    """
+    加重移動平均を表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, period: int, label: str = "ema",
+                 applied_price: AppliedPrice = AppliedPrice.CLOSE):
+        self._period = period
+        self._applied_price = applied_price
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        if 1 <= self._period <= 12:
+            self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+        elif 13 <= self._period <= 74:
+            self.style = {"linestyle": "solid", "color": "green", "linewidth": 1, "alpha": 1}
+        elif 75 <= self._period <= 200:
+            self.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+        else:
+            super()._apply_default_style()
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        prices = self._feeder.get_prices(self._period, self._applied_price)
+        prices = talib.WMA(prices, self._period)
+        self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
+class ENVELOPE(Indicator):
+    """
+    エンベロープを表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, period: int, deviation: float,
+                 label: str = "envelope", applied_price: AppliedPrice = AppliedPrice.CLOSE):
+        self._period = period
+        self._deviation = deviation
+        self._applied_price = applied_price
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        self.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        prices = self._feeder.get_prices(self._period, self._applied_price)
+        prices = talib.SMA(prices, self._period)
+        prices = prices + (prices * self._deviation)
+        self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
+class MACD(Indicator):
+    """
+    MACDを表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, fast_period: int, slow_period: int, signal_period, mode_macd: ModeMACD,
+                 label: str = "macd", applied_price: AppliedPrice = AppliedPrice.CLOSE):
+        self._fast_period = fast_period
+        self._slow_period = slow_period
+        self._signal_period = signal_period
+        self._mode_macd = mode_macd
+        self._applied_price = applied_price
+        super().__init__(feeder, label)
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        prices = self._feeder.get_prices(self._slow_period, self._applied_price)
+        prices = talib.MACD(prices, fastperiod=self._fast_period, slowperiod=self._slow_period, signalperiod=self._signal_period)
+        if self._mode_macd == ModeMACD.FAST:
+            self._prices = prices[0][-self._feeder.bar_count:].tolist()
+        elif self._mode_macd == ModeMACD.SLOW:
+            self._prices = prices[1][-self._feeder.bar_count:].tolist()
+        elif self._mode_macd == ModeMACD.SIGNAL:
+            self._prices = prices[2][-self._feeder.bar_count:].tolist()
+
+
+class RSI(Indicator):
+    """
+    RSIを表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, period: int, label: str = "rsi",
+                 applied_price: AppliedPrice = AppliedPrice.CLOSE):
+        self._period = period
+        self._applied_price = applied_price
+        super().__init__(feeder, label)
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        prices = self._feeder.get_prices(self._period, self._applied_price)
+        prices = talib.RSI(prices, timeperiod=self._period)
+        self._prices = prices[-self._feeder.bar_count:].tolist()
+
+
 class BBANDS(Indicator):
     """
     ボリンジャーバンドを表します。
@@ -199,32 +322,6 @@ class STDDEV(Indicator):
         self._prices = prices[-self._feeder.bar_count:].tolist()
 
 
-class MACD(Indicator):
-    """
-    MACDを表します。
-    """
-
-    def __init__(self, feeder: CandleFeeder, fast_period: int, slow_period: int, signal_period, mode_macd: ModeMACD,
-                 label: str = "macd", applied_price: AppliedPrice = AppliedPrice.CLOSE):
-        self._fast_period = fast_period
-        self._slow_period = slow_period
-        self._signal_period = signal_period
-        self._mode_macd = mode_macd
-        self._applied_price = applied_price
-        super().__init__(feeder, label)
-
-    def _load(self):
-        self._times = self._feeder.get_times()
-        prices = self._feeder.get_prices(self._slow_period, self._applied_price)
-        prices = talib.MACD(prices, fastperiod=self._fast_period, slowperiod=self._slow_period, signalperiod=self._signal_period)
-        if self._mode_macd == ModeMACD.FAST:
-            self._prices = prices[0][-self._feeder.bar_count:].tolist()
-        elif self._mode_macd == ModeMACD.SLOW:
-            self._prices = prices[1][-self._feeder.bar_count:].tolist()
-        elif self._mode_macd == ModeMACD.SIGNAL:
-            self._prices = prices[2][-self._feeder.bar_count:].tolist()
-
-
 class ADX(Indicator):
     """
     ADX(修正移動平均)を表します。
@@ -250,47 +347,6 @@ class ADX(Indicator):
         lows = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.LOW)
         closes = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.CLOSE)
         prices = talib.ADX(high=highs, low=lows, close=closes, timeperiod=self._period)
-        self._prices = prices[-self._feeder.bar_count:].tolist()
-
-
-class RSI(Indicator):
-    """
-    RSIを表します。
-    """
-
-    def __init__(self, feeder: CandleFeeder, period: int, label: str = "rsi",
-                 applied_price: AppliedPrice = AppliedPrice.CLOSE):
-        self._period = period
-        self._applied_price = applied_price
-        super().__init__(feeder, label)
-
-    def _load(self):
-        self._times = self._feeder.get_times()
-        prices = self._feeder.get_prices(self._period, self._applied_price)
-        prices = talib.RSI(prices, timeperiod=self._period)
-        self._prices = prices[-self._feeder.bar_count:].tolist()
-
-
-class ENVELOPE(Indicator):
-    """
-    エンベロープを表します。
-    """
-
-    def __init__(self, feeder: CandleFeeder, period: int, deviation: float,
-                 label: str = "envelope", applied_price: AppliedPrice = AppliedPrice.CLOSE):
-        self._period = period
-        self._deviation = deviation
-        self._applied_price = applied_price
-        super().__init__(feeder, label)
-
-    def _apply_default_style(self):
-        self.style = {"linestyle": "dashdot", "color": "grey", "linewidth": 0.5, "alpha": 1}
-
-    def _load(self):
-        self._times = self._feeder.get_times()
-        prices = self._feeder.get_prices(self._period, self._applied_price)
-        prices = talib.SMA(prices, self._period)
-        prices = prices + (prices * self._deviation)
         self._prices = prices[-self._feeder.bar_count:].tolist()
 
 
