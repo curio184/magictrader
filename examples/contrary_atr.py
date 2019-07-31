@@ -60,38 +60,44 @@ class MyTradeTerminal(TradeTerminal):
         """
 
         # テクニカルインディケーターを作成する
-        sma = SMA(feeder, 13)        # SMA
 
         # ATRBAND
-        atrb_u = ATRBAND(feeder, 13, 1.6, ModeBAND.UPPER, "atrb_u")
-        atrb_l = ATRBAND(feeder, 13, 1.6, ModeBAND.LOWER, "atrb_l")
+        atrb_u2 = ATRBAND(feeder, 49, 13, 2, ModeBAND.UPPER, "atrb_u2")
+        atrb_u1 = ATRBAND(feeder, 49, 13, 1, ModeBAND.UPPER, "atrb_u1")
+        atrb_md = ATRBAND(feeder, 49, 13, 1, ModeBAND.MIDDLE, "wma")
+        atrb_l1 = ATRBAND(feeder, 49, 13, 1, ModeBAND.LOWER, "atrb_u1")
+        atrb_l2 = ATRBAND(feeder, 49, 13, 2, ModeBAND.LOWER, "atrb_l2")
+
+        # ADX
+        adx = ADX(feeder, 8, "adx")
+        adx.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
 
         # STDDEV
         stddev = STDDEV(feeder, 26, 1, "stddev")
 
-        # ADX
-        adx = ADX(feeder, 14, "adx")
-        adx.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
-
         # チャートのメイン画面に表示するテクニカルインディケーターを登録する
         window_main.height_ratio = 3
-        window_main.indicators_left.append(sma)
-        window_main.indicators_left.append(atrb_u)
-        window_main.indicators_left.append(atrb_l)
+        window_main.indicators_left.append(atrb_u2)
+        window_main.indicators_left.append(atrb_u1)
+        window_main.indicators_left.append(atrb_md)
+        window_main.indicators_left.append(atrb_l1)
+        window_main.indicators_left.append(atrb_l2)
 
         # チャートのサブ画面に表示するテクニカルインディケーターを登録する
         window_sub = ChartWindow()
         window_sub.height_ratio = 1
-        window_sub.indicators_left.append(stddev)
-        window_sub.indicators_right.append(adx)
+        window_sub.indicators_left.append(adx)
+        window_sub.indicators_right.append(stddev)
 
         # チャートにサブ画面を登録する
         chart.add_window(window_sub)
 
         # on_tickイベントに受け渡すデータを格納する
-        data_bag["sma"] = sma
-        data_bag["atrb_u"] = atrb_u
-        data_bag["atrb_l"] = atrb_l
+        data_bag["atrb_u2"] = atrb_u2
+        data_bag["atrb_u1"] = atrb_u1
+        data_bag["atrb_md"] = atrb_md
+        data_bag["atrb_l1"] = atrb_l1
+        data_bag["atrb_l2"] = atrb_l2
         data_bag["stddev"] = stddev
         data_bag["adx"] = adx
 
@@ -131,9 +137,11 @@ class MyTradeTerminal(TradeTerminal):
         """
 
         # 受け渡されたデータを引き出す
-        sma = data_bag["sma"]
-        atrb_u = data_bag["atrb_u"]
-        atrb_l = data_bag["atrb_l"]
+        atrb_u2 = data_bag["atrb_u2"]
+        atrb_u1 = data_bag["atrb_u1"]
+        atrb_md = data_bag["atrb_md"]
+        atrb_l1 = data_bag["atrb_l1"]
+        atrb_l2 = data_bag["atrb_l2"]
         stddev = data_bag["stddev"]
         adx = data_bag["adx"]
 
@@ -178,12 +186,12 @@ class MyTradeTerminal(TradeTerminal):
         # エントリー：ATR逆張り
         if not short_position:
             if score.penalty_short_on_contrary_atrb == 0 \
-                    and candle.closes[-1] >= atrb_u.prices[-1] \
+                    and candle.closes[-1] >= atrb_u2.prices[-1] \
                     and score.signal_stddev_bull == 0 \
                     and score.signal_adx_bull == 0 \
                     and score.signal_stddev_peakout > 0 \
                     and score.signal_adx_peakout > 0:
-                stop_price = candle.closes[-1] + int((candle.closes[-1] - sma.prices[-1]) * risk_reward_ratio)
+                stop_price = candle.closes[-1] + int((candle.closes[-1] - atrb_md.prices[-1]) * risk_reward_ratio)
                 # ポジション
                 short_position = position_repository.create_position()
                 short_position.open(candle.times[-1], "sell", candle.closes[-1], 1, "ATR逆張り", stop_price=stop_price)
@@ -191,12 +199,12 @@ class MyTradeTerminal(TradeTerminal):
         # エントリー：ATR逆張り
         if not long_position:
             if score.penalty_long_on_contrary_atrb == 0 \
-                    and candle.closes[-1] <= atrb_l.prices[-1] \
+                    and candle.closes[-1] <= atrb_l2.prices[-1] \
                     and score.signal_stddev_bull == 0 \
                     and score.signal_adx_bull == 0 \
                     and score.signal_stddev_peakout > 0 \
                     and score.signal_adx_peakout > 0:
-                stop_price = candle.closes[-1] - int((sma.prices[-1] - candle.closes[-1]) * risk_reward_ratio)
+                stop_price = candle.closes[-1] - int((atrb_md.prices[-1] - candle.closes[-1]) * risk_reward_ratio)
                 # ポジション
                 long_position = position_repository.create_position()
                 long_position.open(candle.times[-1], "buy", candle.closes[-1], 1,  "ATR逆張り", stop_price=stop_price)
@@ -207,7 +215,7 @@ class MyTradeTerminal(TradeTerminal):
 
             # 利確：SMAタッチ
             if not long_position.is_closed:
-                if candle.closes[-1] >= sma.prices[-1] and long_position.hold_period >= 0:
+                if candle.closes[-1] >= atrb_md.prices[-1] and long_position.hold_period >= 0:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "SMAタッチ")
 
@@ -225,7 +233,7 @@ class MyTradeTerminal(TradeTerminal):
 
             # 利確：SMAタッチ
             if not short_position.is_closed:
-                if candle.closes[-1] <= sma.prices[-1] and short_position.hold_period >= 0:
+                if candle.closes[-1] <= atrb_md.prices[-1] and short_position.hold_period >= 0:
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "SMAタッチ")
 

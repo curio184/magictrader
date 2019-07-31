@@ -327,32 +327,33 @@ class ATRBAND(Indicator):
     ATRBAND(Average True Range Band)を表します。
     """
 
-    def __init__(self, feeder: CandleFeeder, period: int, deviation: float, mode_band: ModeBAND,
-                 label: str = "atr_band"):
-        self._period = period
+    def __init__(self, feeder: CandleFeeder, wma_period: int, atr_period: int,
+                 deviation: int, mode_band: ModeBAND, label: str = "atr_band"):
+        self._wma_period = wma_period
+        self._atr_period = atr_period
         self._deviation = deviation
         self._mode_band = mode_band
         super().__init__(feeder, label)
 
     def _apply_default_style(self):
-        self.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
+        self.style = {"linestyle": "solid", "color": "magenta", "linewidth": 1, "alpha": 0.3}
 
     def _load(self):
         self._times = self._feeder.get_times()
-        # SMA
-        closes = self._feeder.get_prices(self._period, AppliedPrice.CLOSE)
-        prices_sma = talib.SMA(closes, self._period)
-        prices_sma = prices_sma[-self._feeder.bar_count:]
+        # WMA
+        closes = self._feeder.get_prices(self._wma_period, AppliedPrice.CLOSE)
+        prices_wma = talib.WMA(closes, self._wma_period)
+        prices_wma = prices_wma[-self._feeder.bar_count:]
         # ATR
         highs = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.HIGH)
         lows = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.LOW)
         closes = self._feeder.get_prices(self._feeder.bar_count, AppliedPrice.CLOSE)
-        prices_atr = talib.ATR(highs, lows, closes, self._period)
-        prices_atr = prices_atr[-self._feeder.bar_count:] * self._deviation
+        prices_atr = talib.ATR(highs, lows, closes, self._atr_period)
+        prices_atr = prices_atr[-self._feeder.bar_count:] * self._deviation * 1.6
         # BAND
         if self._mode_band == ModeBAND.UPPER:
-            self._prices = (prices_sma + prices_atr).tolist()
+            self._prices = (prices_wma + prices_atr).tolist()
         elif self._mode_band == ModeBAND.MIDDLE:
-            self._prices = prices_sma.tolist()
+            self._prices = prices_wma.tolist()
         elif self._mode_band == ModeBAND.LOWER:
-            self._prices = (prices_sma - prices_atr).tolist()
+            self._prices = (prices_wma - prices_atr).tolist()

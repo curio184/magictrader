@@ -138,9 +138,9 @@ class MyTradeTerminal(TradeTerminal):
         stddev = STDDEV(feeder, 26, 1, "stddev")
 
         # ATRBAND
-        atrb_u1 = ATRBAND(feeder, 14, 1.6, ModeBAND.UPPER, "atrb_u1")
+        atrb_u1 = ATRBAND(feeder, 49, 14, 2, ModeBAND.UPPER, "atrb_u1")
         atrb_u1.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
-        atrb_l1 = ATRBAND(feeder, 14, 1.6, ModeBAND.LOWER, "atrb_l1")
+        atrb_l1 = ATRBAND(feeder, 49, 14, 2, ModeBAND.LOWER, "atrb_l1")
         atrb_l1.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
 
         # ENVELOPE
