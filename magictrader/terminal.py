@@ -207,7 +207,7 @@ class TradeTerminal:
             3: ポジションを一部でも開くことに成功した場合はTrue、
                すべてキャンセルした場合はFalseを返します。
         """
-        return position.open_price, position.order_amount, True
+        return position.open_price, position.order_amount, False
 
     def _on_position_closing(self, position: Position, position_repository: PositionRepository) -> float:
         """
