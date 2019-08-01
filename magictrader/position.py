@@ -34,8 +34,8 @@ class Position:
         self._close_price = None
         self._close_comment = ""
         self._order_amount = None
-        self._limit_price = None
         self._stop_price = None
+        self._limit_price = None
         self._exec_open_price = None
         self._exec_close_price = None
         self._exec_order_amount = None
@@ -100,8 +100,8 @@ class Position:
             "close_price": self._close_price,
             "close_comment": self._close_comment,
             "order_amount": self._order_amount,
-            "limit_price": self._limit_price,
             "stop_price": self._stop_price,
+            "limit_price": self._limit_price,
             "exec_open_price": self._exec_open_price,
             "exec_close_price": self._exec_close_price,
             "exec_order_amount": self._exec_order_amount,
@@ -130,10 +130,10 @@ class Position:
         self._close_comment = str(data["close_comment"])
         if data["order_amount"] is not None:
             self._order_amount = float(data["order_amount"])
-        if data["limit_price"] is not None:
-            self._limit_price = float(data["limit_price"])
         if data["stop_price"] is not None:
             self._stop_price = float(data["stop_price"])
+        if data["limit_price"] is not None:
+            self._limit_price = float(data["limit_price"])
         if data["exec_open_price"] is not None:
             self._exec_open_price = float(data["exec_open_price"])
         if data["exec_close_price"] is not None:

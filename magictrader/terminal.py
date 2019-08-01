@@ -123,6 +123,9 @@ class TradeTerminal:
             # ティックを評価する
             self._on_tick(self._candle, data_bag, self._position_repository, is_newbar)
 
+            # ストップ注文・リミット注文を執行する
+            self._exec_stop_and_limit(self._candle, self._position_repository)
+
             is_newbar = False
 
             if self._trade_mode in ["practice", "forwardtest"]:
@@ -290,6 +293,35 @@ class TradeTerminal:
                         self._sell_close_signal.prices[idx] = position.close_price
 
         self._chart.refresh()
+
+    def _exec_stop_and_limit(self, candle: Candle, position_repository: PositionRepository):
+        """
+        ストップ注文・リミット注文を執行します。
+        """
+
+        # ロングポジション
+        long_positions = position_repository.get_open_positions("buy")
+        for long_position in long_positions:
+            # ストップ注文を執行する
+            if long_position.stop_price is not None:
+                if candle.closes[-1] <= long_position.stop_price:
+                    long_position.close(candle.times[-1], candle.price[-1], "ストップ注文を執行")
+            # リミット注文を執行する
+            if long_position.limit_price is not None:
+                if candle.closes[-1] >= long_position.limit_price:
+                    long_position.close(candle.times[-1], candle.price[-1], "リミット注文を執行")
+
+        # ショートポジション
+        short_positions = position_repository.get_open_positions("sell")
+        for short_position in short_positions:
+            # ストップ注文を執行する
+            if short_position.stop_price is not None:
+                if candle.closes[-1] >= short_position.stop_price:
+                    short_position.close(candle.times[-1], candle.price[-1], "ストップ注文を執行")
+            # リミット注文を執行する
+            if short_position.limit_price is not None:
+                if candle.closes[-1] <= short_position.limit_price:
+                    short_position.close(candle.times[-1], candle.price[-1], "リミット注文を執行")
 
     def _send_position(self, position: Position, position_repository: PositionRepository):
         """
