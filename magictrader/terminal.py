@@ -1,5 +1,8 @@
+import logging
+import logging.config
 import os
 import shutil
+import sys
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
@@ -35,6 +38,16 @@ class TradeTerminal:
         terminal_name : str, optional
             ターミナルの識別名, by default "mt"
         """
+
+        # loggerの設定
+        logging_config_path = os.path.join(
+            os.path.dirname(__file__), "config", "logging.ini"
+        )
+        log_file_name = os.path.splitext(os.path.basename(sys.argv[0]))[0] + ".log"
+        logging.config.fileConfig(
+            logging_config_path, defaults={"log_file_name": log_file_name}
+        )
+        self._logger = logging.getLogger()
 
         # 取引の設定
         self._currency_pair = currency_pair
