@@ -616,7 +616,7 @@ class MyTradeTerminal(TradeTerminal):
         if is_newbar:
             score.decay()
 
-    def _on_opening_position(self, position: Position, position_repository: PositionRepository) -> (float, float, bool):
+    def _on_position_opening(self, position: Position, position_repository: PositionRepository) -> (float, float, bool):
         """
         ポジションを開くときに呼び出されます。
         ポジションをどのように開くかを実装します。
@@ -638,7 +638,7 @@ class MyTradeTerminal(TradeTerminal):
         """
         return position.open_price, position.order_amount, False
 
-    def _on_closing_position(self, position: Position, position_repository: PositionRepository) -> float:
+    def _on_position_closing(self, position: Position, position_repository: PositionRepository) -> float:
         """
         ポジションを閉じるときに呼び出されます。
         ポジションをどのように閉じるかを実装します。
