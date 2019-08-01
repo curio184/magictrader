@@ -139,14 +139,12 @@ class TradeTerminal:
             # ストップ注文・リミット注文を執行する
             self._exec_stop_and_limit(self._candle, self._position_repository)
 
-            # is_newbar = False
+            is_newbar = False
 
             if self._trade_mode in ["practice", "forwardtest"]:
                 self._chart.wait(2.0)
             self._feeder.go_next()
-            if is_newbar:
-                self._chart.refresh()
-            is_newbar = False
+            self._chart.refresh()
 
     @abstractmethod
     def _on_init(self, feeder: CandleFeeder, chart: Chart, window_main: ChartWindow, data_bag: dict):
