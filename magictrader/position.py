@@ -1,5 +1,6 @@
 import codecs
 import json
+import logging
 import os
 from datetime import datetime, timedelta
 from typing import List
@@ -21,6 +22,7 @@ class Position:
         feeder : CandleFeeder
             ローソク足のデータを提供するフィーダーです。
         """
+        self._logger = logging.getLogger()
         self._feeder = feeder
         self._is_opened = False
         self._is_closed = False
@@ -67,6 +69,10 @@ class Position:
         self._exec_order_amount = opening_eargs.params["exec_amount"]
         self._is_opened = True
         self._on_opened(EventArgs({"position": self}))
+        self._logger.debug(
+            "position_opened: action={}, exec_price={}, exec_amount={}, comment={}"
+            .format(self.open_action, self.exec_open_price, self.exec_order_amount, self.open_comment)
+        )
 
     def close(self, dt: datetime, price: float, comment: str = ""):
         """
@@ -82,6 +88,10 @@ class Position:
         self._on_closing(closing_eargs)
         self._exec_close_price = closing_eargs.params["exec_price"]
         self._on_closed(EventArgs({"position": self}))
+        self._logger.debug(
+            "position_closed: action={}, exec_price={}, exec_amount={}, comment={}"
+            .format(self.close_action, self.exec_close_price, self.exec_order_amount, self.close_comment)
+        )
 
     def to_dict(self) -> dict:
         """
