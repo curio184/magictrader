@@ -370,7 +370,19 @@ class CandleFeeder:
                 time.sleep(0.03)
         self._server_request_latest = datetime.now()
 
-        response = self._chart_api.get_ohlc(currency_pair, Period.to_zaifapi_str(period), range_from, range_to)
+        try_count = 0
+        response = None
+        is_success = False
+        while not is_success:
+            try:
+                try_count += 1
+                response = self._chart_api.get_ohlc(currency_pair, Period.to_zaifapi_str(period), range_from, range_to)
+                is_success = True
+            except Exception as ex:
+                if try_count > 10:
+                    raise ex
+                time.sleep(1.0)
+
         return {
             "times": list(map(lambda x: TimeConverter.unixtime_to_datetime(int(x["time"]/1000)), response["ohlc_data"])),
             "opens": numpy.array(list(map(lambda x: x["open"], response["ohlc_data"]))),
