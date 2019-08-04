@@ -212,8 +212,26 @@ class CandleFeeder:
             range_from = self._cursor_datetime - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
             range_to = self._cursor_datetime
 
-            # サーバーからローソク足を取得する
-            self._ohlcs = self._get_ohlcs_from_server(self._currency_pair, self._period, range_from, range_to)
+            # サーバーが過去のローソク足を返す場合の対策
+            try_count = 0
+            previous_time = None
+            if "times" in self._ohlcs:
+                previous_time = self._ohlcs["times"][-1]
+            while True:
+
+                # サーバーからローソク足を取得する
+                self._ohlcs = self._get_ohlcs_from_server(self._currency_pair, self._period, range_from, range_to)
+
+                try_count += 1
+                if previous_time is None \
+                        or (previous_time is not None
+                            and self._ohlcs["times"][-1] >= previous_time):
+                    break
+                else:
+                    print("server response time is wrong.")
+                    if try_count > 100:
+                        raise Exception("server response time is wrong.")
+                    time.sleep(1.0)
 
             # ローソク足更新イベントを実行する
             self._on_ohlc_updated(EventArgs())
@@ -372,14 +390,13 @@ class CandleFeeder:
 
         try_count = 0
         response = None
-        is_success = False
-        while not is_success:
+        while True:
             try:
                 try_count += 1
                 response = self._chart_api.get_ohlc(currency_pair, Period.to_zaifapi_str(period), range_from, range_to)
-                is_success = True
+                break
             except Exception as ex:
-                if try_count > 10:
+                if try_count > 100:
                     raise ex
                 time.sleep(1.0)
 
