@@ -469,24 +469,13 @@ class MyTradeTerminal(TradeTerminal):
             # 利確：標準偏差ピークアウト
             if not long_position.is_closed and long_position.hold_period >= 1:
                 if candle.closes[-1] >= atrb_u1.prices[-1] \
-                        and ((signal.adx_fast_status_summary not in ["neutral", "bear", "peakout"] and adx_fast_status in ["neutral", "bear", "peakout"])
-                             or (signal.adx_slow_status_summary not in ["neutral", "bear", "peakout"] and adx_slow_status in ["neutral", "bear", "peakout"])
-                             or (signal.stddev_status_summary not in ["neutral", "bear", "peakout"] and stddev_status in ["neutral", "bear", "peakout"])):
+                        and (int(signal.adx_fast_status_summary in ["neutral", "bear", "peakout"])
+                             + int(signal.adx_slow_status_summary in ["neutral", "bear", "peakout"])
+                             + int(signal.stddev_status_summary in ["neutral", "bear", "peakout"]) >= 2):
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
                     # 天井フラグをON
-                    if candle.closes[-1] >= atrb_u1.prices[-1]:
-                        signal.touch_major_high = True
-
-                elif candle.closes[-1] >= atrb_u1.prices[-1] \
-                        and signal.adx_fast_status_summary in ["neutral", "bear", "peakout"] \
-                        and signal.adx_slow_status_summary in ["neutral", "bear", "peakout"] \
-                        and signal.stddev_status_summary in ["neutral", "bear", "peakout"]:
-                    # ポジション
-                    long_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
-                    # 天井フラグをON
-                    if candle.closes[-1] >= atrb_u1.prices[-1]:
-                        signal.touch_major_high = True
+                    signal.touch_major_high = True
 
             # 損切り：中期SMAタッチ
             if not long_position.is_closed and long_position.hold_period >= 1:
@@ -529,24 +518,13 @@ class MyTradeTerminal(TradeTerminal):
             # 利確：標準偏差ピークアウト
             if not short_position.is_closed and short_position.hold_period >= 1:
                 if candle.closes[-1] <= atrb_l1.prices[-1] \
-                    and (signal.adx_fast_status_summary not in ["neutral", "bear", "peakout"] and adx_fast_status in ["neutral", "bear", "peakout"]) \
-                        or (signal.adx_slow_status_summary not in ["neutral", "bear", "peakout"] and adx_slow_status in ["neutral", "bear", "peakout"]) \
-                        or (signal.stddev_status_summary not in ["neutral", "bear", "peakout"] and stddev_status in ["neutral", "bear", "peakout"]):
+                        and(int(signal.adx_fast_status_summary in ["neutral", "bear", "peakout"])
+                            + int(signal.adx_slow_status_summary in ["neutral", "bear", "peakout"])
+                            + int(signal.stddev_status_summary in ["neutral", "bear", "peakout"]) >= 2):
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
                     # 大底フラグをON
-                    if candle.closes[-1] <= atrb_l1.prices[-1]:
-                        signal.touch_major_low = True
-
-                elif candle.closes[-1] <= atrb_l1.prices[-1] \
-                        and signal.adx_fast_status_summary in ["neutral", "bear", "peakout"] \
-                        and signal.adx_slow_status_summary in ["neutral", "bear", "peakout"] \
-                        and signal.stddev_status_summary in ["neutral", "bear", "peakout"]:
-                    # ポジション
-                    short_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
-                    # 大底フラグをON
-                    if candle.closes[-1] <= atrb_l1.prices[-1]:
-                        signal.touch_major_high = True
+                    signal.touch_major_low = True
 
             # 損切り：中期SMAタッチ
             if not short_position.is_closed and short_position.hold_period >= 1:
