@@ -196,7 +196,9 @@ class MyTradeTerminal(TradeTerminal):
         data_bag["stddev"] = stddev
 
         # シグナルボード
-        # NOTE: 取引時間軸に応じて適切に変更してください。
+        # シグナルの検出はティックごとに行いますが、瞬間的なノイズを除去するため、
+        # 一定期間の履歴を取り、その最大をシグナルとして利用しています。
+        # 取引時間軸に応じて適切に変更してください。
         history_count = 80 if self._trade_mode in ["practice", "forwardtest"] else 10
         data_bag["signal_board"] = SignalBoard(history_count)
 
