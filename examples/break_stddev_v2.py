@@ -9,15 +9,15 @@ from magictrader.position import Position, PositionRepository
 from magictrader.terminal import TradeTerminal
 
 
-class ScoreBoard:
+class SignalBoard:
 
-    def __init__(self):
-        self.ema_fast_status = ["neutral"] * 80
-        self.bband_status = ["neutral"] * 80
-        self.bband_width_status = ["neutral"] * 80
-        self.adx_fast_status = ["neutral"] * 80
-        self.adx_slow_status = ["neutral"] * 80
-        self.stddev_status = ["neutral"] * 80
+    def __init__(self, history_count: int):
+        self.ema_fast_status = ["neutral"] * history_count
+        self.bband_status = ["neutral"] * history_count
+        self.bband_width_status = ["neutral"] * history_count
+        self.adx_fast_status = ["neutral"] * history_count
+        self.adx_slow_status = ["neutral"] * history_count
+        self.stddev_status = ["neutral"] * history_count
         self.long_try_count = 0
         self.short_try_count = 0
         self.touch_major_high = False
@@ -195,8 +195,10 @@ class MyTradeTerminal(TradeTerminal):
         data_bag["adx_slow"] = adx_slow
         data_bag["stddev"] = stddev
 
-        # シグナル・ペナルティスコア
-        data_bag["score_board"] = ScoreBoard()
+        # シグナルボード
+        # NOTE: 取引時間軸に応じて適切に変更する必要がある
+        history_count = 80 if self._trade_mode in ["practice", "forwardtest"] else 10
+        data_bag["signal_board"] = SignalBoard(history_count)
 
     def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository, is_newbar: bool):
         """
@@ -252,8 +254,8 @@ class MyTradeTerminal(TradeTerminal):
         adx_slow = data_bag["adx_slow"]
         stddev = data_bag["stddev"]
 
-        # シグナル・ペナルティスコア
-        score = data_bag["score_board"]
+        # シグナルボード
+        signal = data_bag["signal_board"]
 
         # 買いストラテジーのポジション
         long_position = None
@@ -397,31 +399,31 @@ class MyTradeTerminal(TradeTerminal):
             stddev_status = "bear"
 
         # シグナルスコア
-        score.ema_fast_status.append(ema_fast_status)
-        del score.ema_fast_status[0]
-        score.bband_status.append(bband_status)
-        del score.bband_status[0]
-        score.bband_width_status.append(bband_width_status)
-        del score.bband_width_status[0]
-        score.adx_fast_status.append(adx_fast_status)
-        del score.adx_fast_status[0]
-        score.adx_slow_status.append(adx_slow_status)
-        del score.adx_slow_status[0]
-        score.stddev_status.append(stddev_status)
-        del score.stddev_status[0]
+        signal.ema_fast_status.append(ema_fast_status)
+        del signal.ema_fast_status[0]
+        signal.bband_status.append(bband_status)
+        del signal.bband_status[0]
+        signal.bband_width_status.append(bband_width_status)
+        del signal.bband_width_status[0]
+        signal.adx_fast_status.append(adx_fast_status)
+        del signal.adx_fast_status[0]
+        signal.adx_slow_status.append(adx_slow_status)
+        del signal.adx_slow_status[0]
+        signal.stddev_status.append(stddev_status)
+        del signal.stddev_status[0]
 
         if ema_fast_status in ["peakout", "bear"]:
-            score.long_try_count = 0
+            signal.long_try_count = 0
 
         if ema_fast_status in ["jumpup", "bull"]:
-            score.short_try_count = 0
+            signal.short_try_count = 0
 
         if bband_status in ["neutral"] \
                 and adx_fast_status in ["neutral", "bear", "peakout"] \
                 and adx_slow_status in ["neutral", "bear", "peakout"] \
                 and stddev_status in ["neutral", "bear", "peakout"]:
-            score.touch_major_high = False
-            score.touch_major_low = False
+            signal.touch_major_high = False
+            signal.touch_major_low = False
 
         self._logger.info(
             "{}:{}:{}:{}:{}:{}".format(candle.times[-1], bband_width_status, bband_status, adx_fast_status, adx_slow_status, stddev_status)
@@ -435,20 +437,20 @@ class MyTradeTerminal(TradeTerminal):
         if not long_position:
 
             # 初回エントリー時
-            if not long_position and score.long_try_count == 0 \
-                    and not score.touch_major_high \
+            if not long_position and signal.long_try_count == 0 \
+                    and not signal.touch_major_high \
                     and candle.closes[-2] >= ema_slow.prices[-2] \
                     and candle.closes[-1] >= ema_slow.prices[-1] \
-                    and score.bband_width_status_summary in ["bull", "bull_break"] \
-                    and score.bband_status_summary in ["bull", "bull_break"] \
-                    and (int(score.adx_fast_status_summary in ["jumpup", "bull"])
-                         + int(score.adx_slow_status_summary in ["jumpup", "bull"])
-                         + int(score.stddev_status_summary in ["jumpup", "bull"]) >= 2):
+                    and signal.bband_width_status_summary in ["bull", "bull_break"] \
+                    and signal.bband_status_summary in ["bull", "bull_break"] \
+                    and (int(signal.adx_fast_status_summary in ["jumpup", "bull"])
+                         + int(signal.adx_slow_status_summary in ["jumpup", "bull"])
+                         + int(signal.stddev_status_summary in ["jumpup", "bull"]) >= 2):
                 # ポジション
                 long_position = position_repository.create_position()
                 long_position.open(candle.times[-1], "buy", candle.closes[-1], 1, "標準偏差順張り")
                 # シグナルスコア
-                score.long_try_count += 1
+                signal.long_try_count += 1
 
         # イグジット：標準偏差順張り
         if long_position \
@@ -463,24 +465,24 @@ class MyTradeTerminal(TradeTerminal):
             # 利確：標準偏差ピークアウト
             if not long_position.is_closed and long_position.hold_period >= 1:
                 if candle.closes[-1] >= atrb_u1.prices[-1] \
-                        and ((score.adx_fast_status_summary not in ["neutral", "bear", "peakout"] and adx_fast_status in ["neutral", "bear", "peakout"])
-                             or (score.adx_slow_status_summary not in ["neutral", "bear", "peakout"] and adx_slow_status in ["neutral", "bear", "peakout"])
-                             or (score.stddev_status_summary not in ["neutral", "bear", "peakout"] and stddev_status in ["neutral", "bear", "peakout"])):
+                        and ((signal.adx_fast_status_summary not in ["neutral", "bear", "peakout"] and adx_fast_status in ["neutral", "bear", "peakout"])
+                             or (signal.adx_slow_status_summary not in ["neutral", "bear", "peakout"] and adx_slow_status in ["neutral", "bear", "peakout"])
+                             or (signal.stddev_status_summary not in ["neutral", "bear", "peakout"] and stddev_status in ["neutral", "bear", "peakout"])):
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
                     # シグナルスコア
                     if candle.closes[-1] >= atrb_u1.prices[-1]:
-                        score.touch_major_high = True
+                        signal.touch_major_high = True
 
                 elif candle.closes[-1] >= atrb_u1.prices[-1] \
-                        and score.adx_fast_status_summary in ["neutral", "bear", "peakout"] \
-                        and score.adx_slow_status_summary in ["neutral", "bear", "peakout"] \
-                        and score.stddev_status_summary in ["neutral", "bear", "peakout"]:
+                        and signal.adx_fast_status_summary in ["neutral", "bear", "peakout"] \
+                        and signal.adx_slow_status_summary in ["neutral", "bear", "peakout"] \
+                        and signal.stddev_status_summary in ["neutral", "bear", "peakout"]:
                     # ポジション
                     long_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
                     # シグナルスコア
                     if candle.closes[-1] >= atrb_u1.prices[-1]:
-                        score.touch_major_high = True
+                        signal.touch_major_high = True
 
             # 損切り：中期SMAタッチ
             if not long_position.is_closed and long_position.hold_period >= 1:
@@ -496,20 +498,20 @@ class MyTradeTerminal(TradeTerminal):
         if not short_position:
 
             # 初回エントリー時
-            if not short_position and score.short_try_count == 0 \
-                    and not score.touch_major_low \
+            if not short_position and signal.short_try_count == 0 \
+                    and not signal.touch_major_low \
                     and candle.closes[-2] <= ema_slow.prices[-2] \
                     and candle.closes[-1] <= ema_slow.prices[-1] \
-                    and score.bband_width_status_summary in ["bull", "bull_break"] \
-                    and score.bband_status_summary in ["bear", "bear_break"] \
-                    and (int(score.adx_fast_status_summary in ["jumpup", "bull"])
-                         + int(score.adx_slow_status_summary in ["jumpup", "bull"])
-                         + int(score.stddev_status_summary in ["jumpup", "bull"]) >= 2):
+                    and signal.bband_width_status_summary in ["bull", "bull_break"] \
+                    and signal.bband_status_summary in ["bear", "bear_break"] \
+                    and (int(signal.adx_fast_status_summary in ["jumpup", "bull"])
+                         + int(signal.adx_slow_status_summary in ["jumpup", "bull"])
+                         + int(signal.stddev_status_summary in ["jumpup", "bull"]) >= 2):
                 # ポジション
                 short_position = position_repository.create_position()
                 short_position.open(candle.times[-1], "sell", candle.closes[-1], 1, "標準偏差順張り")
                 # シグナルスコア
-                score.short_try_count += 1
+                signal.short_try_count += 1
 
         # イグジット：標準偏差順張り
         if short_position \
@@ -523,14 +525,14 @@ class MyTradeTerminal(TradeTerminal):
 
             # 利確：標準偏差ピークアウト
             if not short_position.is_closed and short_position.hold_period >= 1:
-                if (score.adx_fast_status_summary not in ["neutral", "bear", "peakout"] and adx_fast_status in ["neutral", "bear", "peakout"]) \
-                        or (score.adx_slow_status_summary not in ["neutral", "bear", "peakout"] and adx_slow_status in ["neutral", "bear", "peakout"]) \
-                        or (score.stddev_status_summary not in ["neutral", "bear", "peakout"] and stddev_status in ["neutral", "bear", "peakout"]):
+                if (signal.adx_fast_status_summary not in ["neutral", "bear", "peakout"] and adx_fast_status in ["neutral", "bear", "peakout"]) \
+                        or (signal.adx_slow_status_summary not in ["neutral", "bear", "peakout"] and adx_slow_status in ["neutral", "bear", "peakout"]) \
+                        or (signal.stddev_status_summary not in ["neutral", "bear", "peakout"] and stddev_status in ["neutral", "bear", "peakout"]):
                     # ポジション
                     short_position.close(candle.times[-1], candle.closes[-1], "標準偏差ピークアウト")
                     # シグナルスコア
                     if candle.closes[-1] <= atrb_l1.prices[-1]:
-                        score.touch_major_low = True
+                        signal.touch_major_low = True
 
             # 損切り：中期SMAタッチ
             if not short_position.is_closed and short_position.hold_period >= 1:
@@ -583,10 +585,10 @@ class MyTradeTerminal(TradeTerminal):
 if __name__ == "__main__":
 
     # 実践モードで実行します
-    mytrade = MyTradeTerminal("btc_jpy", "4h", "practice", terminal_name="break_stddev")
+    # mytrade = MyTradeTerminal("btc_jpy", "4h", "practice", terminal_name="break_stddev")
     # フォワードテストモードで実行します
     # mytrade = MyTradeTerminal("btc_jpy", "4h", "forwardtest", terminal_name="break_stddev")
     # バックテストモードで実行します
-    # mytrade = MyTradeTerminal("btc_jpy", "4h", "backtest", datetime(2017, 4, 1), datetime(2019, 8, 3), terminal_name="break_stddev")
+    mytrade = MyTradeTerminal("btc_jpy", "4h", "backtest", datetime(2017, 4, 1), datetime(2019, 8, 3), terminal_name="break_stddev")
 
     mytrade.run()
