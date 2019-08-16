@@ -207,10 +207,10 @@ class CandleFeeder:
         else:
 
             # ローソク足の取得範囲を計算する
-            self._cursor_datetime = datetime.now()
-            self._to_datetime = self._cursor_datetime
-            range_from = self._cursor_datetime - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
-            range_to = self._cursor_datetime
+            self._datetime_cursor = datetime.now()
+            self._to_datetime = self._datetime_cursor
+            range_from = self._datetime_cursor - timedelta(minutes=Period.to_minutes(self._period) * (self._cache_bar_count - 1))
+            range_to = self._datetime_cursor
 
             # サーバーが過去のローソク足を返す場合の対策
             try_count = 0
