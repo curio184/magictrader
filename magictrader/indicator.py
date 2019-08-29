@@ -419,7 +419,6 @@ class ATRBAND(Indicator):
 class SchaffTC(Indicator):
     """
     Schaff Trend Cycleを表します。
-    https://c.mql5.com/forextsd/forum/40/schaff_code.pdf
     """
 
     def __init__(self, feeder: CandleFeeder,  label: str = "schaff_tc"):
