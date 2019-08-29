@@ -243,16 +243,28 @@ class MACD(Indicator):
         self._applied_price = applied_price
         super().__init__(feeder, label)
 
+    def _apply_default_style(self):
+        if self._mode_macd == ModeMACD.MACD:
+            self.style = {"linestyle": "solid", "color": "blue", "linewidth": 1, "alpha": 1}
+        elif self._mode_macd == ModeMACD.SIGNAL:
+            self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+            self.label = "macd_signal"
+        else:
+            super()._apply_default_style()
+            self.label = "macd_histogram"
+
     def _load(self):
         self._times = self._feeder.get_times()
-        prices = self._feeder.get_prices(self._slow_period, self._applied_price)
-        prices = talib.MACD(prices, fastperiod=self._fast_period, slowperiod=self._slow_period, signalperiod=self._signal_period)
-        if self._mode_macd == ModeMACD.FAST:
-            self._prices = prices[0][-self._feeder.bar_count:].tolist()
-        elif self._mode_macd == ModeMACD.SLOW:
-            self._prices = prices[1][-self._feeder.bar_count:].tolist()
+        prices = self._feeder.get_prices(self._slow_period + self._signal_period, self._applied_price)
+        macd = talib.EMA(prices, self._fast_period) - talib.EMA(prices, self._slow_period)
+        macd_signal = talib.EMA(macd, self._signal_period)
+        macd_histogram = macd - macd_signal
+        if self._mode_macd == ModeMACD.MACD:
+            self._prices = macd[-self._feeder.bar_count:].tolist()
         elif self._mode_macd == ModeMACD.SIGNAL:
-            self._prices = prices[2][-self._feeder.bar_count:].tolist()
+            self._prices = macd_signal[-self._feeder.bar_count:].tolist()
+        elif self._mode_macd == ModeMACD.HISTOGRAM:
+            self._prices = macd_histogram[-self._feeder.bar_count:].tolist()
 
 
 class RSI(Indicator):

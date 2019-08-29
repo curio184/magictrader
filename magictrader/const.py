@@ -184,6 +184,6 @@ class ModeMACD(Enum):
     """
     MACDのラインの種類
     """
-    FAST = 0
-    SLOW = 1
-    SIGNAL = 2
+    MACD = 0
+    SIGNAL = 1
+    HISTOGRAM = 2
