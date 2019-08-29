@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List
 
 import talib
+from pyti import stochastic
 
 from magictrader.candle import CandleFeeder
 from magictrader.const import AppliedPrice, ModeBAND, ModeMACD, ModeTRADESIGNAL
@@ -413,3 +414,44 @@ class ATRBAND(Indicator):
             self._prices = prices_wma.tolist()
         elif self._mode_band == ModeBAND.LOWER:
             self._prices = (prices_wma - prices_atr).tolist()
+
+
+class SchaffTC(Indicator):
+    """
+    Schaff Trend Cycleを表します。
+    https://c.mql5.com/forextsd/forum/40/schaff_code.pdf
+    """
+
+    def __init__(self, feeder: CandleFeeder,  label: str = "schaff_tc"):
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        self.style = {"linestyle": "solid", "color": "red", "linewidth": 1, "alpha": 1}
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+
+        # Default Params
+        ma_fast_period = 23     # MACD Fast Length
+        ma_slow_period = 50     # MACD Slow Length
+        cycle_length = 10       # Cycle Length
+        d1_length = 3           # 1st %D Length
+        d2_length = 3           # 2nd %D Length
+
+        # close
+        prices_close = self._feeder.get_prices(200, AppliedPrice.CLOSE)
+
+        # macd
+        ema_fast = talib.EMA(prices_close, ma_fast_period)
+        ema_slow = talib.EMA(prices_close, ma_slow_period)
+        macd = ema_fast - ema_slow
+
+        # stocastic from the macd
+        k1 = stochastic.percent_k(macd, cycle_length)
+        d1 = talib.EMA(k1, d1_length)
+
+        # stocastic from the macd
+        k2 = stochastic.percent_k(d1, cycle_length)
+        d2 = talib.EMA(k2, d2_length)
+
+        self._prices = d2[-self._feeder.bar_count:].tolist()
