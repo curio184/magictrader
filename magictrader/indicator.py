@@ -122,6 +122,23 @@ class TRADESIGNAL(Indicator):
                     self.prices[cur_idx] = prev_prices[prev_idx]
 
 
+class HLine(Indicator):
+    """
+    水平線を表します。
+    """
+
+    def __init__(self, feeder: CandleFeeder, price: float, label: str = "hline"):
+        self._price = price
+        super().__init__(feeder, label)
+
+    def _apply_default_style(self):
+        self.style = {"linestyle": "dotted", "color": "red", "linewidth": 1, "alpha": 1}
+
+    def _load(self):
+        self._times = self._feeder.get_times()
+        self._prices = [self._price] * self._feeder.bar_count
+
+
 class SMA(Indicator):
     """
     単純移動平均を表します。

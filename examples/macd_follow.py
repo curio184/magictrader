@@ -3,8 +3,8 @@ from itertools import groupby
 
 from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart, ChartWindow
-from magictrader.const import ModeMACD
-from magictrader.indicator import EMA, MACD, SchaffTC
+from magictrader.const import ModeBAND, ModeMACD
+from magictrader.indicator import ATRBAND, EMA, MACD, HLine, SchaffTC
 from magictrader.position import Position, PositionRepository
 from magictrader.terminal import TradeTerminal
 
@@ -84,10 +84,19 @@ class MyTradeTerminal(TradeTerminal):
         ema_middle = EMA(feeder, 21, "ema_middle")
         ema_slow = EMA(feeder, 89, "ema_slow")
 
+        # ATRBAND
+        atrb_u1 = ATRBAND(feeder, 49, 14, 2, ModeBAND.UPPER, "atr_band_p1")
+        atrb_u1.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
+        atrb_l1 = ATRBAND(feeder, 49, 14, 2, ModeBAND.LOWER, "atr_band_m1")
+        atrb_l1.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
+
         # MACD
         macd = MACD(feeder, 12, 26, 9, ModeMACD.MACD)
         macd_signal = MACD(feeder, 12, 26, 9, ModeMACD.SIGNAL)
         macd_histogram = MACD(feeder, 12, 26, 9, ModeMACD.HISTOGRAM)
+
+        # Horizontal Line
+        hline = HLine(feeder, 0, "zero_line")
 
         # Schaff Trend Cycle
         stc = SchaffTC(feeder)
@@ -99,7 +108,8 @@ class MyTradeTerminal(TradeTerminal):
         # チャートのメイン画面に表示するテクニカルインディケーターを登録する
         window_main.height_ratio = 3
         window_main.indicators_left.extend(
-            [ema_fast, ema_middle, ema_slow]
+            [ema_fast, ema_middle, ema_slow,
+             atrb_u1, atrb_l1]
         )
 
         # チャートのサブ画面に表示するテクニカルインディケーターを登録する
@@ -108,6 +118,7 @@ class MyTradeTerminal(TradeTerminal):
         window_sub1.indicators_left.append(macd)
         window_sub1.indicators_left.append(macd_signal)
         window_sub1.indicators_left.append(macd_histogram)
+        window_sub1.indicators_left.append(hline)
 
         window_sub2 = ChartWindow()
         window_sub2.height_ratio = 1
@@ -125,6 +136,8 @@ class MyTradeTerminal(TradeTerminal):
         data_bag["ema_fast"] = ema_fast
         data_bag["ema_middle"] = ema_middle
         data_bag["ema_slow"] = ema_slow
+        data_bag["atrb_u1"] = atrb_u1
+        data_bag["atrb_l1"] = atrb_l1
         data_bag["macd"] = macd
         data_bag["macd_signal"] = macd_signal
         data_bag["macd_histogram"] = macd_histogram
@@ -177,6 +190,8 @@ class MyTradeTerminal(TradeTerminal):
         ema_fast = data_bag["ema_fast"]
         ema_middle = data_bag["ema_middle"]
         ema_slow = data_bag["ema_slow"]
+        atrb_u1 = data_bag["atrb_u1"]
+        atrb_l1 = data_bag["atrb_l1"]
         macd = data_bag["macd"]
         macd_signal = data_bag["macd_signal"]
         macd_histogram = data_bag["macd_histogram"]
@@ -271,7 +286,7 @@ class MyTradeTerminal(TradeTerminal):
         del signal.stc_status[0]
 
         self._logger.info(
-            "{}:{}:{}".format(candle.times[-1], macd_status, stc_status)
+            "{}:{}:{}:{}".format(candle.times[-1], macd_status, stc_status, stc.prices[-1])
         )
 
         ##################################################
@@ -301,6 +316,14 @@ class MyTradeTerminal(TradeTerminal):
                 # ポジション
                 long_position.close(candle.times[-1], candle.closes[-1], "MACD収束")
 
+            # 利確：ATRBAND上限
+            if not long_position.is_closed \
+                    and candle.closes[-1] >= atrb_u1.prices[-1] \
+                    and stc.prices[-1] >= 0.95:
+
+                # ポジション
+                long_position.close(candle.times[-1], candle.closes[-1], "ATRBAND上限")
+
         ##################################################
         # 売りストラテジー
         ##################################################
@@ -326,6 +349,14 @@ class MyTradeTerminal(TradeTerminal):
                     and signal.stc_status_summary in ["bull", "jumpup"]:
                 # ポジション
                 short_position.close(candle.times[-1], candle.closes[-1], "MACD収束")
+
+            # 利確：ATR下限
+            if not short_position.is_closed \
+                    and candle.closes[-1] <= atrb_l1.prices[-1] \
+                    and stc.prices[-1] <= 0.05:
+
+                # ポジション
+                short_position.close(candle.times[-1], candle.closes[-1], "ATR下限")
 
     def _on_position_opening(self, position: Position, position_repository: PositionRepository) -> (float, float, bool):
         """
