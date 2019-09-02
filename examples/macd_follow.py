@@ -1,5 +1,4 @@
 from datetime import datetime
-from itertools import groupby
 
 from magictrader.candle import Candle, CandleFeeder
 from magictrader.chart import Chart, ChartWindow
@@ -11,48 +10,10 @@ from magictrader.terminal import TradeTerminal
 
 class SignalBoard:
 
-    def __init__(self, history_count: int):
-        self.ema_fast_status = ["neutral"] * history_count
-        self.macd_status = ["neutral"] * history_count
-        self.stc_status = ["neutral"] * history_count
+    def __init__(self):
+        self.stc_status = "neutral"
         self.dip_ready = True
         self.rip_ready = True
-
-    @property
-    def ema_fast_status_summary(self) -> str:
-        max_count = 1
-        max_item = self.ema_fast_status[-1]
-        sorted_items = sorted(self.ema_fast_status)
-        for key, group in groupby(sorted_items):
-            group_count = len(list(group))
-            if group_count > max_count:
-                max_item = key
-                max_count = group_count
-        return max_item
-
-    @property
-    def macd_status_summary(self) -> str:
-        max_count = 1
-        max_item = self.macd_status[-1]
-        sorted_items = sorted(self.macd_status)
-        for key, group in groupby(sorted_items):
-            group_count = len(list(group))
-            if group_count > max_count:
-                max_item = key
-                max_count = group_count
-        return max_item
-
-    @property
-    def stc_status_summary(self) -> str:
-        max_count = 1
-        max_item = self.stc_status[-1]
-        sorted_items = sorted(self.stc_status)
-        for key, group in groupby(sorted_items):
-            group_count = len(list(group))
-            if group_count > max_count:
-                max_item = key
-                max_count = group_count
-        return max_item
 
 
 class MyTradeTerminal(TradeTerminal):
@@ -85,9 +46,9 @@ class MyTradeTerminal(TradeTerminal):
         ema_slow = EMA(feeder, 89, "ema_slow")
 
         # ATRBAND
-        atrb_u1 = ATRBAND(feeder, 49, 14, 2, ModeBAND.UPPER, "atr_band_p1")
+        atrb_u1 = ATRBAND(feeder, 49, 14, 3, ModeBAND.UPPER, "atr_band_p1")
         atrb_u1.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
-        atrb_l1 = ATRBAND(feeder, 49, 14, 2, ModeBAND.LOWER, "atr_band_m1")
+        atrb_l1 = ATRBAND(feeder, 49, 14, 3, ModeBAND.LOWER, "atr_band_m1")
         atrb_l1.style = {"linestyle": "solid", "color": "orange", "linewidth": 1, "alpha": 1}
 
         # MACD
@@ -144,11 +105,7 @@ class MyTradeTerminal(TradeTerminal):
         data_bag["stc"] = stc
 
         # シグナルボード
-        # シグナルの検出はティックごとに行いますが、瞬間的なノイズを除去するため、
-        # 一定期間の履歴を取り、その最大をシグナルとして利用しています。
-        # 取引時間軸に応じて適切に変更してください。
-        history_count = 80 if self._trade_mode in ["practice", "forwardtest"] else 10
-        data_bag["signal_board"] = SignalBoard(history_count)
+        data_bag["signal_board"] = SignalBoard()
 
     def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository, is_newbar: bool):
         """
@@ -216,77 +173,50 @@ class MyTradeTerminal(TradeTerminal):
         # シグナルの検出
         ##################################################
 
-        ema_fast_status = "neutral"
-        macd_status = "neutral"
-        stc_status = "neutral"
-
-        # EMA
-        idx_from = -4
-        min_price_idx = ema_fast.prices.index(min(ema_fast.prices[idx_from:-1]))
-        max_price_idx = ema_fast.prices.index(max(ema_fast.prices[idx_from:-1]))
-
-        if ema_fast.prices[-1] > max(ema_fast.prices[idx_from:-1]) \
-                and max_price_idx < max_price_idx:
-            ema_fast_status = "jumpup"
-
-        if ema_fast.prices[-1] > max(ema_fast.prices[idx_from:-1]) \
-                and max_price_idx > min_price_idx:
-            ema_fast_status = "bull"
-
-        if ema_fast.prices[-1] < max(ema_fast.prices[idx_from:-1]) \
-                and max_price_idx > min_price_idx:
-            ema_fast_status = "peakout"
-
-        if ema_fast.prices[-1] < max(ema_fast.prices[idx_from:-1]) \
-                and max_price_idx < min_price_idx:
-            ema_fast_status = "bear"
+        macd_strength = 0
 
         # MACD
-        if macd.prices[-1] > 0 and macd_signal.prices[-1] > 0 and macd_histogram.prices[-1] > 0:
-            macd_status = "bull"
+        idx_from = -5
 
-        if macd.prices[-1] < 0 and macd_signal.prices[-1] < 0 and macd_histogram.prices[-1] < 0:
-            macd_status = "bear"
+        if macd.prices[-2] > 0 and macd_signal.prices[-2] > 0 and macd_histogram.prices[-2] > 0:
+            macd_strength = int(macd.prices[-2] > max(macd.prices[idx_from:-2])) \
+                + int(macd_signal.prices[-2] > max(macd_signal.prices[idx_from:-2]))\
+                + int(macd_histogram.prices[-2] > max(macd_histogram.prices[idx_from:-2]))
+
+        if macd.prices[-2] < 0 and macd_signal.prices[-2] < 0 and macd_histogram.prices[-2] < 0:
+            macd_strength = - int(macd.prices[-2] < max(macd.prices[idx_from:-2])) \
+                - int(macd_signal.prices[-2] < max(macd_signal.prices[idx_from:-2])) \
+                - int(macd_histogram.prices[-2] < max(macd_histogram.prices[idx_from:-2]))
 
         # Schaff Trend Cycle
-        idx_from = -4
-        min_price_idx = stc.prices.index(min(stc.prices[idx_from:-1]))
-        max_price_idx = stc.prices.index(max(stc.prices[idx_from:-1]))
+        idx_from = -5
 
-        if stc.prices[-1] > max(stc.prices[idx_from:-1]) \
-                and max_price_idx < max_price_idx:
-            stc_status = "jumpup"
+        if signal.stc_status in ["bear", "neutral"]:
+            if max(stc.prices[idx_from:-2]) < 0.1 \
+                    and stc.prices[-2] >= 0.1:
+                signal.stc_status = "bull"
 
-        if stc.prices[-1] > max(stc.prices[idx_from:-1]) \
-                and max_price_idx > min_price_idx:
-            stc_status = "bull"
-
-        if stc.prices[-1] < max(stc.prices[idx_from:-1]) \
-                and max_price_idx > min_price_idx:
-            stc_status = "peakout"
-
-        if stc.prices[-1] < max(stc.prices[idx_from:-1]) \
-                and max_price_idx < min_price_idx:
-            stc_status = "bear"
+        if signal.stc_status in ["bull", "neutral"]:
+            if max(stc.prices[idx_from:-2]) > 0.9 \
+                    and stc.prices[-2] <= 0.9:
+                signal.stc_status = "bear"
 
         # 買いスタンバイをON
-        if ema_fast_status in ["peakout", "bear"]:
+        # if stc.prices[-2] < 0.2:
+        if stc.prices[-2] < 0.5:
             signal.dip_ready = True
 
         # 売りスタンバイをON
-        if ema_fast_status in ["jumpup", "bull"]:
+        # if stc.prices[-2] > 0.8:
+        if stc.prices[-2] > 0.5:
             signal.rip_ready = True
 
         # シグナル履歴を最新化
-        signal.ema_fast_status.append(ema_fast_status)
-        del signal.ema_fast_status[0]
-        signal.macd_status.append(macd_status)
-        del signal.macd_status[0]
-        signal.stc_status.append(stc_status)
-        del signal.stc_status[0]
+        # signal.something.append(something)
+        # del signal.something[0]
 
         self._logger.info(
-            "{}:{}:{}:{}".format(candle.times[-1], macd_status, stc_status, stc.prices[-1])
+            "{}:{}:{}:{}".format(candle.times[-1], macd_strength, signal.stc_status, stc.prices[-1])
         )
 
         ##################################################
@@ -296,8 +226,8 @@ class MyTradeTerminal(TradeTerminal):
         if not long_position:
 
             if not long_position and signal.dip_ready \
-                    and signal.macd_status_summary == "bull" \
-                    and signal.stc_status_summary in ["bull", "jumpup"]:
+                    and signal.stc_status == "bull" \
+                    and macd_strength == 3:
                 # ポジション
                 long_position = position_repository.create_position()
                 long_position.open(candle.times[-1], "buy", candle.closes[-1], 1, "MACD順張り")
@@ -310,8 +240,8 @@ class MyTradeTerminal(TradeTerminal):
 
             # 利確：MACD収束
             if not long_position.is_closed \
-                    and stc.prices[-1] < 0.75 \
-                    and signal.stc_status_summary in ["bear", "peakout"]:
+                    and (signal.stc_status == "bear"
+                         or macd_strength <= 2):
 
                 # ポジション
                 long_position.close(candle.times[-1], candle.closes[-1], "MACD収束")
@@ -331,8 +261,8 @@ class MyTradeTerminal(TradeTerminal):
         if not short_position:
 
             if not short_position and signal.rip_ready \
-                    and signal.macd_status_summary == "bear" \
-                    and signal.stc_status_summary in ["bear", "peakout"]:
+                and signal.stc_status == "bear" \
+                    and macd_strength <= -3:
                 # ポジション
                 short_position = position_repository.create_position()
                 short_position.open(candle.times[-1], "sell", candle.closes[-1], 1, "MACD順張り")
@@ -345,8 +275,8 @@ class MyTradeTerminal(TradeTerminal):
 
             # 利確：MACD収束
             if not short_position.is_closed \
-                    and stc.prices[-1] > 0.25 \
-                    and signal.stc_status_summary in ["bull", "jumpup"]:
+                    and (signal.stc_status == "bull"
+                         or macd_strength >= -2):
                 # ポジション
                 short_position.close(candle.times[-1], candle.closes[-1], "MACD収束")
 
@@ -403,10 +333,10 @@ class MyTradeTerminal(TradeTerminal):
 if __name__ == "__main__":
 
     # 実践モードで実行します
-    # mytrade = MyTradeTerminal("btc_jpy", "4h", "practice")
+    # mytrade = MyTradeTerminal("btc_jpy", "4h", "practice", terminal_name="macd_follow")
     # フォワードテストモードで実行します
-    # mytrade = MyTradeTerminal("btc_jpy", "4h", "forwardtest")
+    # mytrade = MyTradeTerminal("btc_jpy", "4h", "forwardtest", terminal_name="macd_follow")
     # バックテストモードで実行します
-    mytrade = MyTradeTerminal("btc_jpy", "4h", "backtest", datetime(2019, 3, 1), datetime(2019, 6, 30))
+    mytrade = MyTradeTerminal("btc_jpy", "4h", "backtest", datetime(2019, 6, 1), datetime(2019, 8, 30), terminal_name="macd_follow")
 
     mytrade.run()
