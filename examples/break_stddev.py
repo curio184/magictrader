@@ -9,9 +9,18 @@ from magictrader.position import Position, PositionRepository
 from magictrader.terminal import TradeTerminal
 
 
-class SignalBoard:
+class SignalHistory:
+    """
+    シグナル履歴
+
+    一時的な相場変動によるノイズを取り除くため、
+    一定期間履歴を取得し、その最大多数をシグナルとして利用します。
+    履歴の数は取引時間軸に応じて適切に変更してください。
+    """
 
     def __init__(self, history_count: int):
+        self.history_update_count = 0
+        self.history_count = history_count
         self.ema_fast_status = ["neutral"] * history_count
         self.bband_status = ["neutral"] * history_count
         self.bband_width_status = ["neutral"] * history_count
@@ -22,6 +31,17 @@ class SignalBoard:
         self.rip_ready = True
         self.touch_major_high = False
         self.touch_major_low = False
+
+    def complete_updating_signals(self):
+        if self.history_update_count < 9999:
+            self.history_update_count += 1
+
+    @property
+    def signal_available(self) -> bool:
+        if self.history_update_count >= self.history_count:
+            return True
+        else:
+            return False
 
     @property
     def ema_fast_status_summary(self) -> str:
@@ -195,12 +215,9 @@ class MyTradeTerminal(TradeTerminal):
         data_bag["adx_slow"] = adx_slow
         data_bag["stddev"] = stddev
 
-        # シグナルボード
-        # シグナルの検出はティックごとに行いますが、瞬間的なノイズを除去するため、
-        # 一定期間の履歴を取り、その最大をシグナルとして利用しています。
-        # 取引時間軸に応じて適切に変更してください。
+        # シグナル履歴
         history_count = 80 if self._trade_mode in ["practice", "forwardtest"] else 10
-        data_bag["signal_board"] = SignalBoard(history_count)
+        data_bag["signal_history"] = SignalHistory(history_count)
 
     def _on_tick(self, candle: Candle, data_bag: dict, position_repository: PositionRepository, is_newbar: bool):
         """
@@ -256,8 +273,8 @@ class MyTradeTerminal(TradeTerminal):
         adx_slow = data_bag["adx_slow"]
         stddev = data_bag["stddev"]
 
-        # シグナルボード
-        signal = data_bag["signal_board"]
+        # シグナル履歴
+        signal = data_bag["signal_history"]
 
         # 買いストラテジーのポジション
         long_position = None
@@ -322,7 +339,7 @@ class MyTradeTerminal(TradeTerminal):
         max_price_idx = bb_wd.prices.index(max(bb_wd.prices[idx_from:-1]))
 
         if bb_wd.prices[-1] > max(bb_wd.prices[idx_from:-1]) \
-                and max_price_idx < max_price_idx:
+                and max_price_idx < min_price_idx:
             bband_width_status = "jumpup"
 
         if bb_wd.prices[-1] > max(bb_wd.prices[idx_from:-1]) \
@@ -434,6 +451,10 @@ class MyTradeTerminal(TradeTerminal):
             "{}:{}:{}:{}:{}:{}".format(candle.times[-1], bband_width_status, bband_status, adx_fast_status, adx_slow_status, stddev_status)
         )
 
+        signal.complete_updating_signals()
+        if not signal.signal_available:
+            return
+
         ##################################################
         # 買いストラテジー
         ##################################################
@@ -445,7 +466,7 @@ class MyTradeTerminal(TradeTerminal):
                     and not signal.touch_major_high \
                     and candle.closes[-2] >= ema_slow.prices[-2] \
                     and candle.closes[-1] >= ema_slow.prices[-1] \
-                    and signal.bband_width_status_summary in ["bull", "bull_break"] \
+                    and signal.bband_width_status_summary in ["jumpup", "bull"] \
                     and signal.bband_status_summary in ["bull", "bull_break"] \
                     and (int(signal.adx_fast_status_summary in ["jumpup", "bull"])
                          + int(signal.adx_slow_status_summary in ["jumpup", "bull"])
@@ -494,7 +515,7 @@ class MyTradeTerminal(TradeTerminal):
                     and not signal.touch_major_low \
                     and candle.closes[-2] <= ema_slow.prices[-2] \
                     and candle.closes[-1] <= ema_slow.prices[-1] \
-                    and signal.bband_width_status_summary in ["bull", "bull_break"] \
+                    and signal.bband_width_status_summary in ["jumpup", "bull"] \
                     and signal.bband_status_summary in ["bear", "bear_break"] \
                     and (int(signal.adx_fast_status_summary in ["jumpup", "bull"])
                          + int(signal.adx_slow_status_summary in ["jumpup", "bull"])
@@ -577,10 +598,10 @@ class MyTradeTerminal(TradeTerminal):
 if __name__ == "__main__":
 
     # 実践モードで実行します
-    # mytrade = MyTradeTerminal("btc_jpy", "4h", "practice", terminal_name="break_stddev")
+    mytrade = MyTradeTerminal("btc_jpy", "4h", "practice", terminal_name="break_stddev")
     # フォワードテストモードで実行します
     # mytrade = MyTradeTerminal("btc_jpy", "4h", "forwardtest", terminal_name="break_stddev")
     # バックテストモードで実行します
-    mytrade = MyTradeTerminal("btc_jpy", "4h", "backtest", datetime(2017, 4, 1), datetime(2019, 8, 3), terminal_name="break_stddev")
+    # mytrade = MyTradeTerminal("btc_jpy", "4h", "backtest", datetime(2017, 4, 1), datetime(2019, 8, 3), terminal_name="break_stddev")
 
     mytrade.run()
