@@ -282,8 +282,13 @@ class Chart:
             # 軸の範囲(左)
             if window.candle:
                 # ローソク足の最低価格～最高価格とする
-                ax_left.set_ylim(min(window.candle.lows), max(window.candle.highs))
+                vertical_margin = 0.01
+                low_price = min(window.candle.lows) * (1 - vertical_margin)
+                high_price = max(window.candle.highs) * (1 + vertical_margin)
+                ax_left.set_ylim(low_price, high_price)
                 ax_left.set_xlim(0, len(window.candle.times))
+                ax_right.set_ylim(low_price, high_price)
+                ax_right.set_xlim(0, len(window.candle.times))
             else:
                 if len(window.indicators_left) > 0:
                     # インディケーターの最低価格～最高価格とする
@@ -378,8 +383,13 @@ class Chart:
             # 軸の範囲(左)
             if window.candle:
                 # ローソク足の最低価格～最高価格とする
-                ax_left.set_ylim(min(window.candle.lows), max(window.candle.highs))
+                vertical_margin = 0.01
+                low_price = min(window.candle.lows) * (1 - vertical_margin)
+                high_price = max(window.candle.highs) * (1 + vertical_margin)
+                ax_left.set_ylim(low_price, high_price)
                 ax_left.set_xlim(0, len(window.candle.times))
+                ax_right.set_ylim(low_price, high_price)
+                ax_right.set_xlim(0, len(window.candle.times))
             else:
                 # インディケーターの最低価格～最高価格とする
                 min_price = 0
