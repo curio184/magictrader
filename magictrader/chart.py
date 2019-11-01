@@ -222,7 +222,7 @@ class Chart:
             else:
                 ax_left = fig.add_subplot(gs_sub[:, :])
                 basis_ax = ax_left
-            window.plt_axes = ax_left
+            window.plt_axes_left = ax_left
 
             # 座標軸(右)
             ax_right = ax_left.twinx()
@@ -328,7 +328,7 @@ class Chart:
         for window in self._windows:
 
             # 座標軸(左)
-            ax_left = window.plt_axes
+            ax_left = window.plt_axes_left
 
             # 座標軸(右)
             ax_right = window.plt_axes_right
