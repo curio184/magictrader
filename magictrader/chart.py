@@ -259,6 +259,30 @@ class Chart:
                 )
                 window.plt_candle_handler = (lines, polys)
 
+                self._x_times = window.candle.times
+                self._x_time_prev = None
+                import matplotlib.ticker as ticker
+                basis_ax.xaxis.set_major_locator(ticker.MaxNLocator(10))
+
+                def format_times(index, position):
+                    try:
+                        format_str = ""
+                        if int(index) == 0:
+                            self._x_time_prev = None
+                        if self._x_time_prev:
+                            if self._x_time_prev.date() == self._x_times[int(index-1)].date():
+                                format_str = "%H:%M"
+                            else:
+                                format_str = "%m-%d %H:%M"
+                        else:
+                            format_str = "%Y-%m-%d"
+                        self._x_time_prev = self._x_times[int(index-1)]
+                        return self._x_times[int(index-1)].strftime(format_str)
+                    except:
+                        return ""
+
+                basis_ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_times))
+
             # インディケータ(左)
             for indicator in window.indicators_left:
                 lines, = ax_left.plot(
@@ -363,6 +387,30 @@ class Chart:
                     window.candle.closes,
                     width=0.8, colorup='r', colordown='b', alpha=0.1
                 )
+
+                self._x_times = window.candle.times
+                self._x_time_prev = None
+                import matplotlib.ticker as ticker
+                ax_left.xaxis.set_major_locator(ticker.MaxNLocator(10))
+
+                def format_times(index, position):
+                    try:
+                        format_str = ""
+                        if int(index) == 0:
+                            self._x_time_prev = None
+                        if self._x_time_prev:
+                            if self._x_time_prev.date() == self._x_times[int(index-1)].date():
+                                format_str = "%H:%M"
+                            else:
+                                format_str = "%m-%d %H:%M"
+                        else:
+                            format_str = "%Y-%m-%d"
+                        self._x_time_prev = self._x_times[int(index-1)]
+                        return self._x_times[int(index-1)].strftime(format_str)
+                    except:
+                        return ""
+
+                ax_left.xaxis.set_major_formatter(ticker.FuncFormatter(format_times))
 
             # インディケータ(左)
             for idx, indicator in enumerate(window.indicators_left):
