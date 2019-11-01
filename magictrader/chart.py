@@ -261,27 +261,38 @@ class Chart:
 
                 self._x_times = window.candle.times
                 self._x_time_prev = None
+                self._x_max_position = 10
                 import matplotlib.ticker as ticker
-                basis_ax.xaxis.set_major_locator(ticker.MaxNLocator(10))
+                ax_left.xaxis.set_major_locator(ticker.MaxNLocator(self._x_max_position))
 
                 def format_times(index, position):
                     try:
-                        format_str = ""
-                        if int(index) == 0:
+                        # time_index
+                        if position == 0:
                             self._x_time_prev = None
-                        if self._x_time_prev:
-                            if self._x_time_prev.date() == self._x_times[int(index-1)].date():
-                                format_str = "%H:%M"
-                            else:
-                                format_str = "%m-%d %H:%M"
+                            time_index = int(index)
+                        elif position == self._x_max_position:
+                            time_index = int(index) - 1
                         else:
-                            format_str = "%Y-%m-%d"
-                        self._x_time_prev = self._x_times[int(index-1)]
-                        return self._x_times[int(index-1)].strftime(format_str)
+                            time_index = int(index)
+
+                        # time_format
+                        time_format = ""
+                        if self._x_time_prev:
+                            if self._x_time_prev.date() == self._x_times[time_index].date():
+                                time_format = "%H:%M"
+                            else:
+                                time_format = "%m-%d %H:%M"
+                        else:
+                            time_format = "%Y-%m-%d"
+                        
+                        self._x_time_prev = self._x_times[time_index]
+
+                        return self._x_times[time_index].strftime(time_format)
                     except:
                         return ""
 
-                basis_ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_times))
+                ax_left.xaxis.set_major_formatter(ticker.FuncFormatter(format_times))
 
             # インディケータ(左)
             for indicator in window.indicators_left:
@@ -390,23 +401,34 @@ class Chart:
 
                 self._x_times = window.candle.times
                 self._x_time_prev = None
+                self._x_max_position = 10
                 import matplotlib.ticker as ticker
-                ax_left.xaxis.set_major_locator(ticker.MaxNLocator(10))
+                ax_left.xaxis.set_major_locator(ticker.MaxNLocator(self._x_max_position))
 
                 def format_times(index, position):
                     try:
-                        format_str = ""
-                        if int(index) == 0:
+                        # time_index
+                        if position == 0:
                             self._x_time_prev = None
-                        if self._x_time_prev:
-                            if self._x_time_prev.date() == self._x_times[int(index-1)].date():
-                                format_str = "%H:%M"
-                            else:
-                                format_str = "%m-%d %H:%M"
+                            time_index = int(index)
+                        elif position == self._x_max_position:
+                            time_index = int(index) - 1
                         else:
-                            format_str = "%Y-%m-%d"
-                        self._x_time_prev = self._x_times[int(index-1)]
-                        return self._x_times[int(index-1)].strftime(format_str)
+                            time_index = int(index)
+
+                        # time_format
+                        time_format = ""
+                        if self._x_time_prev:
+                            if self._x_time_prev.date() == self._x_times[time_index].date():
+                                time_format = "%H:%M"
+                            else:
+                                time_format = "%m-%d %H:%M"
+                        else:
+                            time_format = "%Y-%m-%d"
+                        
+                        self._x_time_prev = self._x_times[time_index]
+
+                        return self._x_times[time_index].strftime(time_format)
                     except:
                         return ""
 
