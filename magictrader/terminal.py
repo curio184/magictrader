@@ -444,7 +444,7 @@ class TradeTerminal:
         pict_dir = os.path.join(os.getcwd(), "report")
         if not os.path.exists(pict_dir):
             os.mkdir(pict_dir)
-        pict_path = os.path.join(pict_dir, "chart.png")
+        pict_path = os.path.join(pict_dir, "chart_{}.png".format(self._terminal_name))
         self._chart.save_as_png(pict_path)
 
         # メッセージを送信する
