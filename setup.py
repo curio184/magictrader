@@ -43,7 +43,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     keywords='zaif zaifapi zaif-exchange trade bot',
-    install_requires=['matplotlib', 'mpl_finance', 'numpy', 'pyti', 'SQLAlchemy', 'zaifer', 'requests'],
+    install_requires=['matplotlib', 'mpl_finance', 'numpy', 'pyti', 'SQLAlchemy', 'zaifer', 'requests', 'requests-oauthlib'],
     extras_require={
         'ta-lib': ['TA-Lib']
     },
