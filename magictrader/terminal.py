@@ -361,96 +361,8 @@ class TradeTerminal:
         twitter_access_token_secret = self._inifile.get_str("twitter", "access_token_secret", "")
         twitter = TwitterMessenger(twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret)
 
-        # タイトル
-        detail_title = "ポジション{}：{}"
-        if not position.is_closed:
-            detail_title = detail_title.format(
-                "オープン", "買い" if position.open_action == "buy" else "売り"
-            )
-        else:
-            detail_title = detail_title.format(
-                "クローズ", "買い" if position.close_action == "buy" else "売り"
-            )
-
-        # 期間
-        detail_date = "期間　　：{} → {}"
-        if position.close_time:
-            if position.open_time.date == position.close_time.date:
-                detail_date = detail_date.format(
-                    "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
-                    "{0:%H:%M:%S}".format(position.close_time)
-                )
-            else:
-                detail_date = detail_date.format(
-                    "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
-                    "{0:%Y-%m-%d %H:%M:%S}".format(position.close_time)
-                )
-        else:
-            detail_date = detail_date.format(
-                "{0:%Y-%m-%d %H:%M:%S}".format(position.open_time),
-                "未決済"
-            )
-
-        # 価格
-        detail_price = "{}：{} → {}"
-        if position.open_action == "buy":
-            detail_price = detail_price.format(
-                "ロング　",
-                "{:,.0f}".format(position.open_price),
-                "{:,.0f}".format(position.close_price) if position.close_price else "未決済"
-            )
-        else:
-            detail_price = detail_price.format(
-                "ショート",
-                "{:,.0f}".format(position.open_price),
-                "{:,.0f}".format(position.close_price) if position.close_price else "未決済"
-            )
-
-        # 損益
-        detail_pl = "損益　　：{}"
-        if position.close_time:
-            detail_pl = detail_pl.format(
-                "{:+,.0f}".format(position.profit)
-            )
-        else:
-            detail_pl = detail_pl.format(
-                "-"
-            )
-
-        # 注文理由
-        detail_open = "注文理由：{}"
-        detail_open = detail_open.format(
-            position.open_comment
-        )
-
-        # 決済理由
-        detail_close = "決済理由：{}"
-        if position.close_time:
-            detail_close = detail_close.format(
-                position.close_comment
-            )
-        else:
-            detail_close = detail_close.format(
-                "-"
-            )
-
-        # 累計損益
-        pl_total = int(position_repository.total_profit)
-        detail_pl_total = "累計損益：{}"
-        detail_pl_total = detail_pl_total.format(
-            "{:+,.0f}".format(pl_total)
-        )
-
-        # メッセージを組み立てる
-        message = ""
-        message += detail_title + "\n"
-        message += detail_date + "\n"
-        message += detail_price + "\n"
-        message += detail_pl + "\n"
-        message += detail_open + "\n"
-        message += detail_close + "\n"
-        message += "--------------------" + "\n"
-        message += detail_pl_total + "\n"
+        # 通知メッセージを取得する
+        message = self._get_message_notification(position, position_repository)
 
         # チャートを画像として保存する
         pict_dir = os.path.join(os.getcwd(), "report")
@@ -475,15 +387,42 @@ class TradeTerminal:
         slack_username = self._inifile.get_str("slack", "username", "")
         slack = SlackMessenger(slack_token, slack_channel, slack_username)
 
+        # 通知メッセージを取得する
+        message = self._get_message_notification(position, position_repository)
+
+        # チャートを画像として保存する
+        pict_dir = os.path.join(os.getcwd(), "report")
+        if not os.path.exists(pict_dir):
+            os.mkdir(pict_dir)
+        pict_path = os.path.join(pict_dir, "chart_{}.png".format(self._terminal_name))
+        self._chart.save_as_png(pict_path)
+
+        # メッセージを送信する
+        slack.send_picture(message, pict_path)
+
+    def _get_message_notification(self, position: Position, position_repository: PositionRepository) -> str:
+        """
+        通知メッセージを取得します。
+
+        Parameters
+        ----------
+        position : Position
+            リクエストされたポジション
+        position_repository : PositionRepository
+            ポジションを管理するためのリポジトリ
+        """
+
         # タイトル
-        detail_title = slack_username + " - ポジション{}：{}"
+        detail_title = "{} - {}"
         if not position.is_closed:
             detail_title = detail_title.format(
-                "オープン", "買い" if position.open_action == "buy" else "売り"
+                position.currency_pair.replace("_", "/").upper(),
+                "新規買い" if position.open_action == "buy" else "新規売り"
             )
         else:
             detail_title = detail_title.format(
-                "クローズ", "買い" if position.close_action == "buy" else "売り"
+                position.currency_pair.replace("_", "/").upper(),
+                "買い決済" if position.open_action == "buy" else "売り決済"
             )
 
         # 期間
@@ -566,12 +505,4 @@ class TradeTerminal:
         message += "--------------------" + "\n"
         message += detail_pl_total + "\n"
 
-        # チャートを画像として保存する
-        pict_dir = os.path.join(os.getcwd(), "report")
-        if not os.path.exists(pict_dir):
-            os.mkdir(pict_dir)
-        pict_path = os.path.join(pict_dir, "chart_{}.png".format(self._terminal_name))
-        self._chart.save_as_png(pict_path)
-
-        # メッセージを送信する
-        slack.send_picture(message, pict_path)
+        return message
