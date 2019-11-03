@@ -496,13 +496,17 @@ class TradeTerminal:
 
         # メッセージを組み立てる
         message = ""
+        if self._inifile.get_str("message_notification", "description", "") != "":
+            message += self._inifile.get_str("message_notification", "description", "").replace("\\n", "\n") + "\n"
         message += detail_title + "\n"
         message += detail_date + "\n"
         message += detail_price + "\n"
         message += detail_pl + "\n"
-        message += detail_open + "\n"
-        message += detail_close + "\n"
-        message += "--------------------" + "\n"
-        message += detail_pl_total + "\n"
+        if self._inifile.get_bool("message_notification", "visible_reason", True):
+            message += detail_open + "\n"
+            message += detail_close + "\n"
+        if self._inifile.get_bool("message_notification", "visible_total_proit", True):
+            message += "--------------------" + "\n"
+            message += detail_pl_total + "\n"
 
         return message
