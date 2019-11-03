@@ -413,15 +413,17 @@ class TradeTerminal:
         """
 
         # タイトル
-        detail_title = "{} - {}"
+        detail_title = "{}({}) - {}"
         if not position.is_closed:
             detail_title = detail_title.format(
                 position.currency_pair.replace("_", "/").upper(),
+                self._period,
                 "新規買い" if position.open_action == "buy" else "新規売り"
             )
         else:
             detail_title = detail_title.format(
                 position.currency_pair.replace("_", "/").upper(),
+                self._period,
                 "買い決済" if position.open_action == "buy" else "売り決済"
             )
 
